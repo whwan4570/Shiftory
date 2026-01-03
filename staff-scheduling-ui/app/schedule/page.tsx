@@ -117,6 +117,7 @@ export default function SchedulePage() {
   const [userInfo, setUserInfo] = useState<{ id: string; email: string; name: string } | null>(null)
   const [shiftModalOpen, setShiftModalOpen] = useState(false)
   const [createMonthModalOpen, setCreateMonthModalOpen] = useState(false)
+  const [copyMonthModalOpen, setCopyMonthModalOpen] = useState(false)
   const [publishModalOpen, setPublishModalOpen] = useState(false)
   const [requestChangeModalOpen, setRequestChangeModalOpen] = useState(false)
   const [selectedShiftForRequest, setSelectedShiftForRequest] = useState<Shift | null>(null)
