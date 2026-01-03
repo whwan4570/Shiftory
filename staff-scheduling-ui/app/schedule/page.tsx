@@ -107,6 +107,7 @@ export default function SchedulePage() {
   const [availError, setAvailError] = useState<string | null>(null)
   const [isPublishing, setIsPublishing] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [isCopying, setIsCopying] = useState(false)
   const [monthStatus, setMonthStatus] = useState<"OPEN" | "DRAFT" | "PUBLISHED" | "unknown">("unknown")
   const [monthExists, setMonthExists] = useState<boolean | null>(null)
   const [lockAt, setLockAt] = useState<string | null>(null)
