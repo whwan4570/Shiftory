@@ -175,7 +175,7 @@ export class TimeEntriesService {
         longitude: createDto.longitude || null,
         distanceMiles,
         locationVerified,
-        flags: flags.length > 0 ? flags : null,
+        flags: flags,
       },
       include: {
         user: {
