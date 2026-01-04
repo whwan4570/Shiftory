@@ -114,6 +114,7 @@ export class TotpController {
         storeId,
         userId: user.id,
         type: checkinDto.type,
+        method: 'QR', // TOTP-based check-in uses QR method
         status: TimeEntryStatus.APPROVED, // Auto-approve for TOTP-based check-in
         clientTimestamp: new Date(),
         locationVerified: true, // TOTP verification counts as location verification

@@ -108,6 +108,9 @@ export class TimeEntriesService {
       ? new Date(createDto.clientTimestamp)
       : null;
 
+    // Determine method: QR if specified, otherwise GPS (default)
+    const method = createDto.method || 'GPS';
+
     // Create time entry (server timestamp is used by default)
     const timeEntry = await this.prisma.timeEntry.create({
       data: {
@@ -115,6 +118,7 @@ export class TimeEntriesService {
         userId,
         shiftId: createDto.shiftId || null,
         type: createDto.type,
+        method,
         status,
         clientTimestamp,
         latitude: createDto.latitude || null,

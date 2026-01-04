@@ -408,6 +408,7 @@ model TimeEntry {
   userId           String          @map("user_id")
   shiftId          String?         @map("shift_id")
   type             TimeEntryType
+  method           String          @default("GPS") // "QR" | "GPS" - method used for check-in/out
   status           TimeEntryStatus @default(PENDING_REVIEW)
   timestamp        DateTime        @default(now()) // Server time
   clientTimestamp  DateTime?       @map("client_timestamp") // Client time (reference only)
