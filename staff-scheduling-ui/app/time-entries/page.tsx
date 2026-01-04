@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Sidebar } from "@/components/sidebar"
 import { Topbar } from "@/components/topbar"
 import { useAuth } from "@/hooks/useAuth"
-import { getStoreId } from "@/lib/api"
+import { getStoreId, storesApi } from "@/lib/api"
 import {
   getPendingTimeEntries,
   reviewTimeEntry,
@@ -17,7 +17,8 @@ import {
   type TimeEntry,
   type ReviewTimeEntryDto,
 } from "@/lib/timeEntriesApi"
-import { AlertCircle, CheckCircle2, XCircle, RefreshCw } from "lucide-react"
+import { AlertCircle, CheckCircle2, XCircle, RefreshCw, Clock, MapPin } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import {
@@ -43,6 +44,8 @@ export default function TimeEntriesPage() {
   const [reviewStatus, setReviewStatus] = useState<"APPROVED" | "REJECTED">("APPROVED")
   const [reviewNote, setReviewNote] = useState("")
   const [reviewing, setReviewing] = useState(false)
+  const [flaggedOnly, setFlaggedOnly] = useState(false)
+  const [userRole, setUserRole] = useState<"OWNER" | "MANAGER" | "WORKER" | null>(null)
 
   // Redirect if no storeId
   useEffect(() => {
@@ -51,12 +54,32 @@ export default function TimeEntriesPage() {
     }
   }, [storeId, authLoading, router])
 
+  // Load user role
+  useEffect(() => {
+    if (storeId && !authLoading) {
+      const loadUserRole = async () => {
+        try {
+          const stores = await storesApi.getStores()
+          const currentStore = stores.find((s) => s.id === storeId)
+          if (currentStore && "myRole" in currentStore) {
+            setUserRole(currentStore.myRole as "OWNER" | "MANAGER" | "WORKER")
+          } else if (currentStore && "role" in currentStore) {
+            setUserRole(currentStore.role as "OWNER" | "MANAGER" | "WORKER")
+          }
+        } catch (err) {
+          console.error("Failed to load user role:", err)
+        }
+      }
+      loadUserRole()
+    }
+  }, [storeId, authLoading])
+
   // Load data
   useEffect(() => {
     if (storeId && !authLoading) {
       loadData()
     }
-  }, [storeId, authLoading])
+  }, [storeId, authLoading, flaggedOnly])
 
   const loadData = async () => {
     if (!storeId) return
@@ -66,8 +89,8 @@ export default function TimeEntriesPage() {
       setError(null)
 
       const [pending, all] = await Promise.all([
-        getPendingTimeEntries(storeId),
-        listTimeEntries(storeId, {}),
+        getPendingTimeEntries(storeId, flaggedOnly),
+        listTimeEntries(storeId, flaggedOnly ? { flaggedOnly: true } : {}),
       ])
 
       setPendingEntries(pending)
@@ -159,11 +182,30 @@ export default function TimeEntriesPage() {
           {pendingEntries.length > 0 && (
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-yellow-600" />
-                  Pending Review ({pendingEntries.length})
-                </CardTitle>
-                <CardDescription>Time entries requiring your approval</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-yellow-600" />
+                      Pending Review ({pendingEntries.length})
+                    </CardTitle>
+                    <CardDescription>Time entries requiring your approval</CardDescription>
+                  </div>
+                  {(userRole === "OWNER" || userRole === "MANAGER") && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="flagged-only-pending"
+                        checked={flaggedOnly}
+                        onCheckedChange={(checked) => setFlaggedOnly(checked === true)}
+                      />
+                      <label
+                        htmlFor="flagged-only-pending"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        Show exceptions only
+                      </label>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -181,6 +223,27 @@ export default function TimeEntriesPage() {
                           <div className="text-sm text-muted-foreground">
                             {format(new Date(entry.timestamp), "MMM d, yyyy h:mm a")}
                           </div>
+                          {entry.flags && entry.flags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {entry.flags.includes("FLAGGED_LATE") && (
+                                <Badge variant="destructive" className="text-xs">
+                                  <Clock className="h-2.5 w-2.5 mr-1" />
+                                  Late
+                                </Badge>
+                              )}
+                              {entry.flags.includes("FLAGGED_NO_SHIFT") && (
+                                <Badge variant="outline" className="text-xs border-orange-300 text-orange-700 bg-orange-50">
+                                  No Shift
+                                </Badge>
+                              )}
+                              {entry.flags.includes("FLAGGED_OUTSIDE_RADIUS") && (
+                                <Badge variant="outline" className="text-xs border-red-300 text-red-700 bg-red-50">
+                                  <MapPin className="h-2.5 w-2.5 mr-1" />
+                                  Outside Radius
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                           {entry.locationVerified ? (
                             <div className="text-xs text-green-600 flex items-center gap-1 mt-1">
                               <CheckCircle2 className="h-3 w-3" />
@@ -207,8 +270,27 @@ export default function TimeEntriesPage() {
           {/* All Entries */}
           <Card>
             <CardHeader>
-              <CardTitle>All Time Entries</CardTitle>
-              <CardDescription>Complete history of check-ins and check-outs</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>All Time Entries</CardTitle>
+                  <CardDescription>Complete history of check-ins and check-outs</CardDescription>
+                </div>
+                {(userRole === "OWNER" || userRole === "MANAGER") && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="flagged-only-all"
+                      checked={flaggedOnly}
+                      onCheckedChange={(checked) => setFlaggedOnly(checked === true)}
+                    />
+                    <label
+                      htmlFor="flagged-only-all"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      Show exceptions only
+                    </label>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {allEntries.length === 0 ? (
@@ -231,6 +313,27 @@ export default function TimeEntriesPage() {
                           <div className="text-sm text-muted-foreground">
                             {format(new Date(entry.timestamp), "MMM d, yyyy h:mm a")}
                           </div>
+                          {entry.flags && entry.flags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {entry.flags.includes("FLAGGED_LATE") && (
+                                <Badge variant="destructive" className="text-xs">
+                                  <Clock className="h-2.5 w-2.5 mr-1" />
+                                  Late
+                                </Badge>
+                              )}
+                              {entry.flags.includes("FLAGGED_NO_SHIFT") && (
+                                <Badge variant="outline" className="text-xs border-orange-300 text-orange-700 bg-orange-50">
+                                  No Shift
+                                </Badge>
+                              )}
+                              {entry.flags.includes("FLAGGED_OUTSIDE_RADIUS") && (
+                                <Badge variant="outline" className="text-xs border-red-300 text-red-700 bg-red-50">
+                                  <MapPin className="h-2.5 w-2.5 mr-1" />
+                                  Outside Radius
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -316,6 +419,30 @@ export default function TimeEntriesPage() {
                       <div>
                         <span className="text-muted-foreground">Shift:</span>{" "}
                         {format(new Date(selectedEntry.shift.date), "MMM d")} {selectedEntry.shift.startTime} - {selectedEntry.shift.endTime}
+                      </div>
+                    )}
+                    {selectedEntry.flags && selectedEntry.flags.length > 0 && (
+                      <div>
+                        <span className="text-muted-foreground">Flags:</span>{" "}
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {selectedEntry.flags.includes("FLAGGED_LATE") && (
+                            <Badge variant="destructive" className="text-xs">
+                              <Clock className="h-2.5 w-2.5 mr-1" />
+                              Late
+                            </Badge>
+                          )}
+                          {selectedEntry.flags.includes("FLAGGED_NO_SHIFT") && (
+                            <Badge variant="outline" className="text-xs border-orange-300 text-orange-700 bg-orange-50">
+                              No Shift
+                            </Badge>
+                          )}
+                          {selectedEntry.flags.includes("FLAGGED_OUTSIDE_RADIUS") && (
+                            <Badge variant="outline" className="text-xs border-red-300 text-red-700 bg-red-50">
+                              <MapPin className="h-2.5 w-2.5 mr-1" />
+                              Outside Radius
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

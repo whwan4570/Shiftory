@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateTimeEntryDto } from './dto/create-time-entry.dto';
 import { ReviewTimeEntryDto } from './dto/review-time-entry.dto';
 import { verifyLocation } from './utils/location.utils';
+import { parseDateTime, timeDifferenceMinutes } from './utils/time.utils';
 import { TimeEntryType, TimeEntryStatus, Role, NotificationType } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -52,43 +53,50 @@ export class TimeEntriesService {
       );
     }
 
-    // Get store with GPS coordinates
+    // Get store with GPS coordinates and check-in policy
     const store = await this.prisma.store.findUnique({
       where: { id: storeId },
+      select: {
+        id: true,
+        latitude: true,
+        longitude: true,
+        checkinGpsRadius: true,
+        checkinWindowStartMins: true,
+        checkinWindowEndMins: true,
+        checkoutWindowStartMins: true,
+        checkoutWindowEndMins: true,
+        checkinNoShiftBehavior: true,
+      },
     });
 
     if (!store) {
       throw new NotFoundException('Store not found');
     }
 
+    // Get check-in policy settings
+    const checkinGpsRadiusMiles = store.checkinGpsRadius ? store.checkinGpsRadius / 1609.34 : 3; // Convert meters to miles
+
     // Verify location if GPS coordinates are provided
     let locationVerified = false;
     let distanceMiles: number | null = null;
 
-    if (createDto.latitude && createDto.longitude) {
+    if (createDto.latitude && createDto.longitude && store.latitude && store.longitude) {
       const locationCheck = verifyLocation(
         store.latitude,
         store.longitude,
         createDto.latitude,
         createDto.longitude,
-        3, // 3 miles radius
+        checkinGpsRadiusMiles,
       );
 
       locationVerified = locationCheck.verified;
       distanceMiles = locationCheck.distanceMiles;
     }
 
-    // Determine status: AUTO_APPROVED if location is verified, otherwise PENDING_REVIEW
-    // For MVP: if location is verified and within radius, auto-approve
-    // Otherwise, set to PENDING_REVIEW for manual review
-    let status: TimeEntryStatus = TimeEntryStatus.PENDING_REVIEW;
-    if (locationVerified) {
-      status = TimeEntryStatus.APPROVED;
-    }
-
-    // If shiftId is provided, verify it exists and belongs to the user
+    // Get shift if shiftId is provided
+    let shift: any = null;
     if (createDto.shiftId) {
-      const shift = await this.prisma.shift.findUnique({
+      shift = await this.prisma.shift.findUnique({
         where: { id: createDto.shiftId },
       });
 
@@ -101,6 +109,48 @@ export class TimeEntriesService {
           'Shift does not belong to you or this store',
         );
       }
+    }
+
+    // Determine status and flags
+    const flags: string[] = [];
+    let status: TimeEntryStatus = TimeEntryStatus.PENDING_REVIEW;
+
+    // Check for FLAGGED_OUTSIDE_RADIUS
+    if (createDto.type === TimeEntryType.CHECK_IN || createDto.type === TimeEntryType.CHECK_OUT) {
+      if (createDto.latitude && createDto.longitude && !locationVerified) {
+        flags.push('FLAGGED_OUTSIDE_RADIUS');
+      }
+    }
+
+    // Check for FLAGGED_NO_SHIFT
+    if (!shift) {
+      flags.push('FLAGGED_NO_SHIFT');
+    }
+
+    // Check for FLAGGED_LATE (for CHECK_IN only)
+    if (shift && createDto.type === TimeEntryType.CHECK_IN) {
+      const checkinTime = new Date(); // Server time
+      const shiftDate = new Date(shift.date);
+      const shiftStartTime = parseDateTime(
+        shiftDate.toISOString().split('T')[0],
+        shift.startTime,
+      );
+
+      const diffMinutes = Math.floor((checkinTime.getTime() - shiftStartTime.getTime()) / (1000 * 60));
+      const windowStartMins = store.checkinWindowStartMins ?? -30;
+      const windowEndMins = store.checkinWindowEndMins ?? 10;
+
+      // If check-in is after the allowed window, flag as late
+      if (diffMinutes > windowEndMins) {
+        flags.push('FLAGGED_LATE');
+      }
+    }
+
+    // Auto-approve if QR method and no flags, or if GPS location is verified and no flags
+    if (createDto.method === 'QR' && flags.length === 0) {
+      status = TimeEntryStatus.APPROVED;
+    } else if (locationVerified && flags.length === 0) {
+      status = TimeEntryStatus.APPROVED;
     }
 
     // Parse client timestamp if provided
@@ -125,6 +175,7 @@ export class TimeEntriesService {
         longitude: createDto.longitude || null,
         distanceMiles,
         locationVerified,
+        flags: flags.length > 0 ? flags : null,
       },
       include: {
         user: {
@@ -157,6 +208,7 @@ export class TimeEntriesService {
    * @param userId - User ID (requester)
    * @param filterUserId - Optional user ID to filter by (managers can view all)
    * @param status - Optional status filter
+   * @param flaggedOnly - Optional flag to show only entries with flags (exceptions)
    * @returns List of time entries
    */
   async listTimeEntries(
@@ -164,6 +216,7 @@ export class TimeEntriesService {
     userId: string,
     filterUserId?: string,
     status?: TimeEntryStatus,
+    flaggedOnly?: boolean,
   ) {
     // Verify user is a member
     const membership = await this.prisma.membership.findUnique({
@@ -194,6 +247,11 @@ export class TimeEntriesService {
       storeId,
       ...(targetUserId && { userId: targetUserId }),
       ...(status && { status }),
+      ...(flaggedOnly && {
+        flags: {
+          not: null,
+        },
+      }),
     };
 
     const timeEntries = await this.prisma.timeEntry.findMany({
@@ -234,9 +292,10 @@ export class TimeEntriesService {
    * Get pending time entries (for managers/owners to review)
    * @param storeId - Store ID
    * @param userId - User ID (requester, must be MANAGER or OWNER)
+   * @param flaggedOnly - Optional flag to show only entries with flags (exceptions)
    * @returns List of pending time entries
    */
-  async getPendingTimeEntries(storeId: string, userId: string) {
+  async getPendingTimeEntries(storeId: string, userId: string, flaggedOnly?: boolean) {
     // Verify user is MANAGER or OWNER
     const membership = await this.prisma.membership.findUnique({
       where: {
@@ -259,11 +318,18 @@ export class TimeEntriesService {
       );
     }
 
+    const where: any = {
+      storeId,
+      status: TimeEntryStatus.PENDING_REVIEW,
+      ...(flaggedOnly && {
+        flags: {
+          not: null,
+        },
+      }),
+    };
+
     const timeEntries = await this.prisma.timeEntry.findMany({
-      where: {
-        storeId,
-        status: TimeEntryStatus.PENDING_REVIEW,
-      },
+      where,
       include: {
         user: {
           select: {

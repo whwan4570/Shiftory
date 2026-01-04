@@ -53,9 +53,9 @@ export class TimeEntriesController {
 
   /**
    * List time entries
-   * GET /stores/:storeId/time-entries?userId=&status=
+   * GET /stores/:storeId/time-entries?userId=&status=&flaggedOnly=
    * Headers: Authorization: Bearer <token>
-   * Query params: userId (optional, managers can filter), status (optional)
+   * Query params: userId (optional, managers can filter), status (optional), flaggedOnly (optional)
    * Returns: List of time entries
    * Workers can only view their own entries
    * Managers/Owners can view all entries
@@ -66,20 +66,24 @@ export class TimeEntriesController {
     @CurrentUser() user: RequestUser,
     @Query('userId') filterUserId?: string,
     @Query('status') status?: TimeEntryStatus,
+    @Query('flaggedOnly') flaggedOnly?: string,
   ) {
+    const flaggedOnlyBool = flaggedOnly === 'true';
     return this.timeEntriesService.listTimeEntries(
       storeId,
       user.id,
       filterUserId,
       status,
+      flaggedOnlyBool,
     );
   }
 
   /**
    * Get pending time entries (for managers/owners to review)
-   * GET /stores/:storeId/time-entries/pending
+   * GET /stores/:storeId/time-entries/pending?flaggedOnly=
    * Headers: Authorization: Bearer <token>
    * Requires: MANAGER or OWNER role
+   * Query params: flaggedOnly (optional) - show only entries with flags
    * Returns: List of pending time entries
    */
   @Get('pending')
@@ -88,8 +92,10 @@ export class TimeEntriesController {
   async getPendingTimeEntries(
     @Param('storeId') storeId: string,
     @CurrentUser() user: RequestUser,
+    @Query('flaggedOnly') flaggedOnly?: string,
   ) {
-    return this.timeEntriesService.getPendingTimeEntries(storeId, user.id);
+    const flaggedOnlyBool = flaggedOnly === 'true';
+    return this.timeEntriesService.getPendingTimeEntries(storeId, user.id, flaggedOnlyBool);
   }
 
   /**

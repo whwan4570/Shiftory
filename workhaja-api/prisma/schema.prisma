@@ -416,6 +416,7 @@ model TimeEntry {
   longitude        Float?
   distanceMiles    Float?          @map("distance_miles") // Calculated distance from store
   locationVerified Boolean         @default(false) @map("location_verified")
+  flags            Json?           // Array of exception flags: ["FLAGGED_LATE", "FLAGGED_NO_SHIFT", "FLAGGED_OUTSIDE_RADIUS"]
   reviewedById     String?         @map("reviewed_by_id")
   reviewedAt       DateTime?       @map("reviewed_at")
   reviewNote       String?         @map("review_note")

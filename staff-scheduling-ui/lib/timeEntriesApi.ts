@@ -20,6 +20,7 @@ export interface TimeEntry {
   longitude?: number
   distanceMiles?: number
   locationVerified: boolean
+  flags?: string[] | null // Exception flags: ["FLAGGED_LATE", "FLAGGED_NO_SHIFT", "FLAGGED_OUTSIDE_RADIUS"]
   reviewedById?: string
   reviewedAt?: string
   reviewNote?: string
@@ -77,6 +78,7 @@ export async function listTimeEntries(
   params?: {
     userId?: string
     status?: TimeEntryStatus
+    flaggedOnly?: boolean
   }
 ): Promise<TimeEntry[]> {
   const queryParams = new URLSearchParams()
@@ -85,6 +87,9 @@ export async function listTimeEntries(
   }
   if (params?.status) {
     queryParams.append("status", params.status)
+  }
+  if (params?.flaggedOnly) {
+    queryParams.append("flaggedOnly", "true")
   }
 
   const query = queryParams.toString()
@@ -97,9 +102,17 @@ export async function listTimeEntries(
  * Get pending time entries (for managers/owners)
  */
 export async function getPendingTimeEntries(
-  storeId: string
+  storeId: string,
+  flaggedOnly?: boolean
 ): Promise<TimeEntry[]> {
-  return apiRequest<TimeEntry[]>(`/stores/${storeId}/time-entries/pending`)
+  const params = new URLSearchParams()
+  if (flaggedOnly) {
+    params.append("flaggedOnly", "true")
+  }
+  const query = params.toString()
+  return apiRequest<TimeEntry[]>(
+    `/stores/${storeId}/time-entries/pending${query ? `?${query}` : ""}`
+  )
 }
 
 /**

@@ -90,14 +90,16 @@ export const authApi = {
    * Register a new user
    */
   async register(data: { email: string; password: string; name: string }) {
-    const response = await apiRequest<{ accessToken: string; storeId: string }>(
+    // Token is now set as HttpOnly cookie by the server
+    const response = await apiRequest<{ storeId?: string }>(
       '/auth/register',
       {
         method: 'POST',
         body: JSON.stringify(data),
       }
     )
-    setAuthToken(response.accessToken)
+    // Token is in HttpOnly cookie, no need to store in localStorage
+    // But we keep setAuthToken for backward compatibility (will be removed in future)
     if (response.storeId) {
       setStoreId(response.storeId)
     }
@@ -106,16 +108,19 @@ export const authApi = {
 
   /**
    * Login with email and password
+   * Token is set as HttpOnly cookie by the server
    */
   async login(data: { email: string; password: string }) {
-    const response = await apiRequest<{ accessToken: string }>(
+    // Token is now set as HttpOnly cookie by the server
+    const response = await apiRequest<{ success: boolean }>(
       '/auth/login',
       {
         method: 'POST',
         body: JSON.stringify(data),
       }
     )
-    setAuthToken(response.accessToken)
+    // Token is in HttpOnly cookie, no need to store in localStorage
+    // But we keep setAuthToken for backward compatibility (will be removed in future)
     return response
   },
 
@@ -133,9 +138,18 @@ export const authApi = {
   },
 
   /**
-   * Logout (clear token)
+   * Logout (clear token cookie)
    */
-  logout() {
+  async logout() {
+    // Clear HttpOnly cookie by calling logout endpoint
+    try {
+      await apiRequest('/auth/logout', {
+        method: 'POST',
+      })
+    } catch (err) {
+      console.error('Failed to logout:', err)
+    }
+    // Also clear localStorage for backward compatibility
     removeAuthToken()
     localStorage.removeItem('store_id')
   },
