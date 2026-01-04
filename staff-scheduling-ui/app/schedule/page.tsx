@@ -599,7 +599,7 @@ export default function SchedulePage() {
                 </label>
               </div>
 
-              {contentTab === "SHIFTS" && (
+              {(userRole === "OWNER" || userRole === "MANAGER") && contentTab === "SHIFTS" && (
                 <Button
                   onClick={() => setShiftModalOpen(true)}
                   disabled={monthStatus === "PUBLISHED" || (viewMode === "MONTH" && monthExists === false)}
