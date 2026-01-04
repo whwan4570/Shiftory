@@ -123,6 +123,14 @@
   - 주간 초과 근무 규칙 (활성화/비활성화, 기준 시간)
   - 휴게 시간 규칙 (유급/무급)
   - 가용성 마감일 (일 단위)
+- ✅ 체크인 정책 설정 (오너만)
+  - 기본 체크인 방식 (QR/GPS)
+  - Fallback 허용
+  - GPS 반경 설정
+  - QR + GPS 동시 요구
+  - 시간 창 설정 (체크인/체크아웃)
+  - No-shift 체크인 동작
+  - 오프라인/권한 거부 동작
 
 ---
 
@@ -296,7 +304,7 @@ workhaja-api/
 
 #### 설정
 - `GET /stores/:storeId/labor-rules` - 노동 규칙 조회
-- `PUT /stores/:storeId/labor-rules` - 노동 규칙 수정
+- `PUT /stores/:storeId/labor-rules` - 노동 규칙 수정 (체크인 정책 포함)
 
 ---
 
@@ -472,6 +480,8 @@ staff-scheduling-ui/
 - **Prisma**: ORM
 - **PostgreSQL**: 데이터베이스
 - **JWT**: 인증
+- **cookie-parser**: 쿠키 파싱 미들웨어
+- **helmet**: 보안 헤더 미들웨어
 - **bcrypt**: 비밀번호 해싱
 - **otplib**: TOTP 생성/검증
 - **qrcode**: QR 코드 생성
@@ -485,6 +495,7 @@ staff-scheduling-ui/
 - **date-fns**: 날짜 처리
 - **html5-qrcode**: QR 코드 스캔
 - **sonner**: 토스트 알림
+- **swr**: 데이터 페칭 및 캐싱 (Sidebar Time Summary)
 
 ---
 
