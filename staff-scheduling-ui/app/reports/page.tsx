@@ -223,8 +223,6 @@ export default function ReportsPage() {
     setViewMonth(month)
   }
 
-  const weekRange = getWeekRange(weekAnchor, weekStartsOn)
-
   const handleExportWeeklyCSV = () => {
     if (!weeklySummary) return
 
