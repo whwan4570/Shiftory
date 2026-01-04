@@ -40,7 +40,6 @@ export class LaborRulesService {
     const store = await this.prisma.store.findUnique({
       where: { id: storeId },
       select: {
-        id: true,
         overtimeDailyEnabled: true,
         overtimeDailyMinutes: true,
         overtimeWeeklyEnabled: true,
@@ -139,7 +138,6 @@ export class LaborRulesService {
       where: { id: storeId },
       data: updateData,
       select: {
-        id: true,
         overtimeDailyEnabled: true,
         overtimeDailyMinutes: true,
         overtimeWeeklyEnabled: true,
