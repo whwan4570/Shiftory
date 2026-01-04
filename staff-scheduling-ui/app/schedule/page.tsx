@@ -59,6 +59,9 @@ type ContentTab = "SHIFTS" | "AVAILABILITY"
  */
 function groupShiftsByDate(shifts: Shift[]): Record<string, Shift[]> {
   const grouped: Record<string, Shift[]> = {}
+  if (!shifts || !Array.isArray(shifts)) {
+    return grouped
+  }
   for (const shift of shifts) {
     const dateKey = extractYMD(shift.date)
     if (!grouped[dateKey]) {
@@ -74,6 +77,9 @@ function groupShiftsByDate(shifts: Shift[]): Record<string, Shift[]> {
  */
 function groupAvailabilityByDate(availability: Availability[]): Record<string, Availability[]> {
   const grouped: Record<string, Availability[]> = {}
+  if (!availability || !Array.isArray(availability)) {
+    return grouped
+  }
   for (const avail of availability) {
     const dateKey = extractYMD(avail.date)
     if (!grouped[dateKey]) {
