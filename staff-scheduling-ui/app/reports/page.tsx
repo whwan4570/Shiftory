@@ -223,6 +223,59 @@ export default function ReportsPage() {
     setViewMonth(month)
   }
 
+  const handleExportWeeklyCSV = () => {
+    if (!weeklySummary) return
+
+    const headers = ["Date", "Paid Hours", "Overtime"]
+    const rows = weeklySummary.byDay.map((day) => [
+      formatDateForCSV(day.date),
+      formatMinutesForCSV(day.paidMins),
+      formatMinutesForCSV(day.overtimeMins),
+    ])
+    
+    // Add totals row
+    rows.push([
+      "Total",
+      formatMinutesForCSV(weeklySummary.paidMins),
+      formatMinutesForCSV(weeklySummary.overtimeMins),
+    ])
+
+    const filename = `weekly-report-${formatDateForCSV(weekRange.from)}-to-${formatDateForCSV(weekRange.to)}.csv`
+    downloadCSV({ headers, rows }, filename)
+  }
+
+  const handleExportMonthlyCSV = () => {
+    if (!monthlySummary) return
+
+    const headers = ["Metric", "Value"]
+    const rows = [
+      ["Total Hours", formatMinutesForCSV(monthlySummary.totalMins)],
+      ["Paid Hours", formatMinutesForCSV(monthlySummary.paidMins)],
+      ["Break Total", formatMinutesForCSV(monthlySummary.breakMins)],
+      ["Overtime", formatMinutesForCSV(monthlySummary.overtimeMins)],
+    ]
+
+    const filename = `monthly-report-${viewYear}-${String(viewMonth).padStart(2, "0")}.csv`
+    downloadCSV({ headers, rows }, filename)
+  }
+
+  const handleExportStaffCSV = () => {
+    if (!staffSummary) return
+
+    const headers = ["Employee", "Email", "Total Hours", "Paid Hours", "Break Total", "Overtime"]
+    const rows = staffSummary.users.map((user) => [
+      user.userName,
+      user.userEmail,
+      formatMinutesForCSV(user.totalMins),
+      formatMinutesForCSV(user.paidMins),
+      formatMinutesForCSV(user.breakMins),
+      formatMinutesForCSV(user.overtimeMins),
+    ])
+
+    const filename = `staff-report-${viewYear}-${String(viewMonth).padStart(2, "0")}.csv`
+    downloadCSV({ headers, rows }, filename)
+  }
+
   const weekRange = getWeekRange(weekAnchor, weekStartsOn)
   const weekLabel = `Week of ${new Date(weekRange.from).toLocaleDateString()} - ${new Date(weekRange.to).toLocaleDateString()}`
 
