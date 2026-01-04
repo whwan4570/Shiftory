@@ -467,3 +467,24 @@ model NotificationJob {
   @@index([notificationId])
   @@map("notification_jobs")
 }
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  storeId    String   @map("store_id")
+  actorUserId String  @map("actor_user_id")
+  entityType String   @map("entity_type") // e.g., "SHIFT", "MONTH", "CHANGE_REQUEST", "TIME_ENTRY", "DOCUMENT", "SUBMISSION", "SETTINGS"
+  entityId   String?  @map("entity_id") // ID of the affected entity (nullable for settings changes)
+  action     String   // e.g., "CREATE", "UPDATE", "DELETE", "PUBLISH", "APPROVE", "REJECT", "ACK", etc.
+  before     Json?    // Previous state (JSON)
+  after      Json?    // New state (JSON)
+  metadata   Json?    // Additional metadata (JSON)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  actor User  @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, createdAt])
+  @@index([storeId, entityType, entityId])
+  @@index([actorUserId])
+  @@map("audit_logs")
+}
