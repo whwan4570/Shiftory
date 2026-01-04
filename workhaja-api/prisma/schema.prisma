@@ -306,24 +306,6 @@ model ChangeRequestCandidate {
   @@map("change_request_candidates")
 }
 
-model AuditLog {
-  id         String   @id @default(cuid())
-  storeId    String   @map("store_id")
-  actorId    String   @map("actor_id")
-  action     String
-  entityType String   @map("entity_type")
-  entityId   String   @map("entity_id")
-  before     Json?
-  after      Json?
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  actor User  @relation(fields: [actorId], references: [id], onDelete: Cascade)
-
-  @@index([storeId, createdAt])
-  @@map("audit_logs")
-}
-
 model Document {
   id         String       @id @default(cuid())
   storeId    String       @map("store_id")
