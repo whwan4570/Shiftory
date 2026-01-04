@@ -14,6 +14,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { TimeEntriesModule } from './time-entries/time-entries.module';
 import { TotpModule } from './totp/totp.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { TotpModule } from './totp/totp.module';
     UploadsModule,
     TimeEntriesModule,
     TotpModule,
+    AuditLogModule,
   ],
 })
 export class AppModule {}

@@ -53,9 +53,9 @@ export class AuditLogService {
           entityType: data.entityType,
           entityId: data.entityId || null,
           action: data.action,
-          before: data.before ? JSON.parse(JSON.stringify(data.before)) : null,
-          after: data.after ? JSON.parse(JSON.stringify(data.after)) : null,
-          metadata: data.metadata ? JSON.parse(JSON.stringify(data.metadata)) : null,
+          before: data.before ? (typeof data.before === 'object' ? data.before : JSON.parse(JSON.stringify(data.before))) : null,
+          after: data.after ? (typeof data.after === 'object' ? data.after : JSON.parse(JSON.stringify(data.after))) : null,
+          metadata: data.metadata ? (typeof data.metadata === 'object' ? data.metadata : JSON.parse(JSON.stringify(data.metadata))) : null,
         },
       });
     } catch (error) {
