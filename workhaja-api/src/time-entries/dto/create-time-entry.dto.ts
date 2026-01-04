@@ -6,6 +6,7 @@ import {
   Max,
   IsString,
   IsDateString,
+  IsIn,
 } from 'class-validator';
 import { TimeEntryType } from '@prisma/client';
 
@@ -15,6 +16,11 @@ import { TimeEntryType } from '@prisma/client';
 export class CreateTimeEntryDto {
   @IsEnum(TimeEntryType, { message: 'Type must be CHECK_IN or CHECK_OUT' })
   type: TimeEntryType;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['QR', 'GPS'])
+  method?: 'QR' | 'GPS'; // Method used for check-in/out (defaults to GPS if not specified)
 
   @IsOptional()
   @IsString()
