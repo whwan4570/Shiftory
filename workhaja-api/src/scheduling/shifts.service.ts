@@ -19,6 +19,7 @@ export class ShiftsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly monthsService: MonthsService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   /**
