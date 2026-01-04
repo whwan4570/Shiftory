@@ -188,8 +188,8 @@ export default function SchedulePage() {
       // Load user role from stores
       const stores = await storesApi.getStores()
       const store = stores.find((s) => s.id === storeId)
-      if (store && store.myRole) {
-        setUserRole(store.myRole as "OWNER" | "MANAGER" | "WORKER")
+      if (store && store.role) {
+        setUserRole(store.role as "OWNER" | "MANAGER" | "WORKER")
       } else {
         setUserRole("WORKER")
       }
