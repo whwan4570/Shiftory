@@ -83,11 +83,33 @@
 - ✅ 알림 목록 조회 (읽음/읽지 않음 필터)
 - ✅ 알림 읽음 표시 (개별/전체)
 
+### 7-1. 변경 이력 (Audit Log)
+- ✅ 모든 중요 작업 자동 기록
+- ✅ 기록되는 작업:
+  - SHIFT: 생성, 수정, 삭제
+  - MONTH: 생성, 발행 (PUBLISH)
+  - CHANGE_REQUEST: 승인, 거부
+  - TIME_ENTRY: 승인, 거부
+  - DOCUMENT: 생성, 수정, 삭제, 확인, 제출 승인/거부
+  - SETTINGS: 노동 규칙 수정 (체크인 정책 포함)
+  - MEMBERSHIP: 역할/권한 변경
+- ✅ 기록 내용: 액터, 엔티티 타입, 액션, 변경 전/후 상태, 메타데이터
+- ✅ 시간 순 정렬, 페이지네이션 지원
+
 ### 8. 시간 기록 (Time Entries)
 - ✅ GPS 기반 체크인/체크아웃
-  - 위치 검증 (매장 반경 3마일 내)
+  - 위치 검증 (매장 반경 설정 가능, 기본 3마일)
   - 자동 승인 (위치 검증 성공 시)
   - 수동 검토 (위치 검증 실패 시)
+- ✅ QR 코드 기반 체크인/체크아웃
+  - TOTP 토큰 검증
+  - 자동 승인 (토큰 검증 성공 시)
+- ✅ 체크인/체크아웃 방법 구분 (GPS/QR)
+- ✅ 예외 자동 분류 (Flags)
+  - FLAGGED_LATE: 지각 체크인
+  - FLAGGED_NO_SHIFT: 스케줄 없는 체크인
+  - FLAGGED_OUTSIDE_RADIUS: 반경 밖 체크인
+- ✅ 예외만 보기 필터 (매니저/오너)
 - ✅ 시간 기록 목록 조회
 - ✅ 대기 중인 시간 기록 검토 (매니저/오너)
 - ✅ 시간 기록 승인/거부
@@ -351,6 +373,9 @@ staff-scheduling-ui/
 │   ├── settings/          # 설정
 │   │   └── page.tsx
 │   │
+│   ├── onboarding-checklist/  # 온보딩 체크리스트 (오너만)
+│   │   └── page.tsx
+│   │
 │   ├── layout.tsx         # 루트 레이아웃
 │   └── page.tsx           # 홈 (리다이렉트)
 │
@@ -434,9 +459,10 @@ staff-scheduling-ui/
 10. **DocumentTarget** - 문서 대상
 11. **DocumentAck** - 문서 확인
 12. **DocumentSubmission** - 문서 제출
-13. **TimeEntry** - 시간 기록
+13. **TimeEntry** - 시간 기록 (flags 필드 포함)
 14. **Notification** - 알림
 15. **NotificationJob** - 알림 작업 큐
+16. **AuditLog** - 변경 이력
 
 ### 주요 Enum
 
