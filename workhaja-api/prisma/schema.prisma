@@ -150,6 +150,19 @@ model Store {
   overtimeWeeklyMinutes Int     @default(2400) @map("overtime_weekly_minutes")
   breakPaid             Boolean @default(false) @map("break_paid")
   weekStartsOn          Int     @default(1) @map("week_starts_on")
+  availabilityDeadlineDays Int?  @map("availability_deadline_days")
+
+  // Check-in Policy
+  checkinPrimaryMethod   String  @default("GPS") @map("checkin_primary_method") // "QR" | "GPS"
+  checkinAllowFallback   Boolean @default(true) @map("checkin_allow_fallback")
+  checkinGpsRadius       Float   @default(4828.032) @map("checkin_gps_radius") // meters (default 3 miles)
+  checkinRequireBoth     Boolean @default(false) @map("checkin_require_both") // Require both QR and GPS
+  checkinWindowStartMins Int     @default(-30) @map("checkin_window_start_mins") // Check-in allowed: shift start -30min to +10min
+  checkinWindowEndMins   Int     @default(10) @map("checkin_window_end_mins")
+  checkoutWindowStartMins Int    @default(-10) @map("checkout_window_start_mins") // Check-out allowed: shift end -10min to +180min
+  checkoutWindowEndMins  Int     @default(180) @map("checkout_window_end_mins")
+  checkinNoShiftBehavior String  @default("ALLOW_FLAG") @map("checkin_no_shift_behavior") // "BLOCK" | "ALLOW_FLAG" | "ALLOW"
+  checkinOfflineBehavior String  @default("ALLOW_REQUEST") @map("checkin_offline_behavior") // "BLOCK" | "ALLOW_REQUEST"
 
   memberships     Membership[]
   scheduleMonths  ScheduleMonth[]

@@ -154,6 +154,7 @@ export default function SettingsPage() {
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="preferences">Preferences</TabsTrigger>
               {isOwner && <TabsTrigger value="labor-rules">Labor Rules</TabsTrigger>}
+              {isOwner && <TabsTrigger value="checkin-policy">Check-in Policy</TabsTrigger>}
             </TabsList>
 
             {/* Profile Tab */}
@@ -349,6 +350,248 @@ export default function SettingsPage() {
                     <div className="flex justify-end pt-4 border-t">
                       <Button onClick={handleSaveLaborRules} disabled={isSaving || !storeId}>
                         {isSaving ? "Saving..." : "Save Labor Rules"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+
+            {/* Check-in Policy Tab (Owner only) */}
+            {isOwner && (
+              <TabsContent value="checkin-policy">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Check-in Policy</CardTitle>
+                    <CardDescription>
+                      Configure how employees check in and out
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Primary Method */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="checkinPrimaryMethod">Primary Method</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Choose the primary check-in method
+                          </p>
+                        </div>
+                        <Select
+                          value={laborRules.checkinPrimaryMethod || 'GPS'}
+                          onValueChange={(value) => {
+                            setLaborRules({ ...laborRules, checkinPrimaryMethod: value as 'QR' | 'GPS' })
+                          }}
+                          disabled={isSaving}
+                        >
+                          <SelectTrigger id="checkinPrimaryMethod" className="w-[150px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="QR">QR Code</SelectItem>
+                            <SelectItem value="GPS">GPS</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Allow Fallback */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="checkinAllowFallback">Allow Fallback</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Allow fallback to alternative method if primary fails
+                          </p>
+                        </div>
+                        <Switch
+                          id="checkinAllowFallback"
+                          checked={laborRules.checkinAllowFallback ?? true}
+                          onCheckedChange={(checked) => {
+                            setLaborRules({ ...laborRules, checkinAllowFallback: checked })
+                          }}
+                          disabled={isSaving}
+                        />
+                      </div>
+                    </div>
+
+                    {/* GPS Radius */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="checkinGpsRadius">GPS Radius</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Maximum distance from store location for GPS check-in
+                          </p>
+                        </div>
+                        <Select
+                          value={String(laborRules.checkinGpsRadius || 4828.032)}
+                          onValueChange={(value) => {
+                            const radiusMap: Record<string, number> = {
+                              '50': 50,
+                              '100': 100,
+                              '200': 200,
+                              '804.672': 804.672, // 0.5 miles
+                              '1609.344': 1609.344, // 1 mile
+                              '4828.032': 4828.032, // 3 miles
+                            }
+                            setLaborRules({ ...laborRules, checkinGpsRadius: radiusMap[value] })
+                          }}
+                          disabled={isSaving}
+                        >
+                          <SelectTrigger id="checkinGpsRadius" className="w-[150px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="50">50m</SelectItem>
+                            <SelectItem value="100">100m</SelectItem>
+                            <SelectItem value="200">200m</SelectItem>
+                            <SelectItem value="804.672">0.5 mi</SelectItem>
+                            <SelectItem value="1609.344">1 mi</SelectItem>
+                            <SelectItem value="4828.032">3 mi</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Require Both */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="checkinRequireBoth">Require Both (Advanced)</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Require both QR and GPS for maximum security
+                          </p>
+                        </div>
+                        <Switch
+                          id="checkinRequireBoth"
+                          checked={laborRules.checkinRequireBoth ?? false}
+                          onCheckedChange={(checked) => {
+                            setLaborRules({ ...laborRules, checkinRequireBoth: checked })
+                          }}
+                          disabled={isSaving}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Time Windows */}
+                    <div className="space-y-4 border-t pt-4">
+                      <h3 className="text-sm font-semibold">Time Windows</h3>
+                      
+                      <div className="space-y-2">
+                        <Label>Check-in Window</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={laborRules.checkinWindowStartMins ?? -30}
+                            onChange={(e) => {
+                              setLaborRules({ ...laborRules, checkinWindowStartMins: Number.parseInt(e.target.value, 10) || -30 })
+                            }}
+                            disabled={isSaving}
+                            className="w-24"
+                          />
+                          <span className="text-sm text-muted-foreground">minutes before shift start</span>
+                          <span className="text-sm">to</span>
+                          <Input
+                            type="number"
+                            value={laborRules.checkinWindowEndMins ?? 10}
+                            onChange={(e) => {
+                              setLaborRules({ ...laborRules, checkinWindowEndMins: Number.parseInt(e.target.value, 10) || 10 })
+                            }}
+                            disabled={isSaving}
+                            className="w-24"
+                          />
+                          <span className="text-sm text-muted-foreground">minutes after shift start</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Check-out Window</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={laborRules.checkoutWindowStartMins ?? -10}
+                            onChange={(e) => {
+                              setLaborRules({ ...laborRules, checkoutWindowStartMins: Number.parseInt(e.target.value, 10) || -10 })
+                            }}
+                            disabled={isSaving}
+                            className="w-24"
+                          />
+                          <span className="text-sm text-muted-foreground">minutes before shift end</span>
+                          <span className="text-sm">to</span>
+                          <Input
+                            type="number"
+                            value={laborRules.checkoutWindowEndMins ?? 180}
+                            onChange={(e) => {
+                              setLaborRules({ ...laborRules, checkoutWindowEndMins: Number.parseInt(e.target.value, 10) || 180 })
+                            }}
+                            disabled={isSaving}
+                            className="w-24"
+                          />
+                          <span className="text-sm text-muted-foreground">minutes after shift end</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* No Shift Behavior */}
+                    <div className="space-y-4 border-t pt-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="checkinNoShiftBehavior">No-Shift Check-in Behavior</Label>
+                          <p className="text-xs text-muted-foreground">
+                            What to do when employee checks in without a scheduled shift
+                          </p>
+                        </div>
+                        <Select
+                          value={laborRules.checkinNoShiftBehavior || 'ALLOW_FLAG'}
+                          onValueChange={(value) => {
+                            setLaborRules({ ...laborRules, checkinNoShiftBehavior: value as 'BLOCK' | 'ALLOW_FLAG' | 'ALLOW' })
+                          }}
+                          disabled={isSaving}
+                        >
+                          <SelectTrigger id="checkinNoShiftBehavior" className="w-[180px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="BLOCK">Block</SelectItem>
+                            <SelectItem value="ALLOW_FLAG">Allow but Flag</SelectItem>
+                            <SelectItem value="ALLOW">Allow</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Offline Behavior */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="checkinOfflineBehavior">Offline/Permission Denied Behavior</Label>
+                          <p className="text-xs text-muted-foreground">
+                            What to do when GPS permission is denied or unavailable
+                          </p>
+                        </div>
+                        <Select
+                          value={laborRules.checkinOfflineBehavior || 'ALLOW_REQUEST'}
+                          onValueChange={(value) => {
+                            setLaborRules({ ...laborRules, checkinOfflineBehavior: value as 'BLOCK' | 'ALLOW_REQUEST' })
+                          }}
+                          disabled={isSaving}
+                        >
+                          <SelectTrigger id="checkinOfflineBehavior" className="w-[180px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="BLOCK">Block</SelectItem>
+                            <SelectItem value="ALLOW_REQUEST">Allow Request</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Save Button */}
+                    <div className="flex justify-end pt-4 border-t">
+                      <Button onClick={handleSaveLaborRules} disabled={isSaving || !storeId}>
+                        {isSaving ? "Saving..." : "Save Check-in Policy"}
                       </Button>
                     </div>
                   </CardContent>

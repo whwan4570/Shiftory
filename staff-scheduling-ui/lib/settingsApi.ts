@@ -11,6 +11,18 @@ export interface LaborRules {
   overtimeWeeklyMinutes?: number
   breakPaid?: boolean
   weekStartsOn?: number
+  availabilityDeadlineDays?: number
+  // Check-in Policy
+  checkinPrimaryMethod?: 'QR' | 'GPS'
+  checkinAllowFallback?: boolean
+  checkinGpsRadius?: number // in meters
+  checkinRequireBoth?: boolean
+  checkinWindowStartMins?: number
+  checkinWindowEndMins?: number
+  checkoutWindowStartMins?: number
+  checkoutWindowEndMins?: number
+  checkinNoShiftBehavior?: 'BLOCK' | 'ALLOW_FLAG' | 'ALLOW'
+  checkinOfflineBehavior?: 'BLOCK' | 'ALLOW_REQUEST'
 }
 
 /**
