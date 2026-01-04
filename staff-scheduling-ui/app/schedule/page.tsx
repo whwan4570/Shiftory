@@ -439,15 +439,17 @@ export default function SchedulePage() {
   }
 
   // Filter shifts
-  const filteredShifts = showCanceled
-    ? shifts
-    : shifts.filter((shift) => !shift.isCanceled)
+  const filteredShifts = shifts && Array.isArray(shifts)
+    ? showCanceled
+      ? shifts
+      : shifts.filter((shift) => !shift.isCanceled)
+    : []
 
   // Group shifts by date
-  const shiftsByDate = groupShiftsByDate(filteredShifts)
+  const shiftsByDate = filteredShifts.length > 0 ? groupShiftsByDate(filteredShifts) : {}
 
   // Group availability by date
-  const availabilityByDate = groupAvailabilityByDate(availabilityList)
+  const availabilityByDate = availabilityList && Array.isArray(availabilityList) ? groupAvailabilityByDate(availabilityList) : {}
 
   // Get shifts for selected date
   const selectedDateKey = selectedDate ? formatYMD(selectedDate) : null
