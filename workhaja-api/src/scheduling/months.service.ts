@@ -12,6 +12,7 @@ import { CreateMonthDto } from './dto/create-month.dto';
 import { CopyMonthDto } from './dto/copy-month.dto';
 import { MonthStatus, ShiftStatus } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 /**
  * MonthsService handles schedule month operations
@@ -22,6 +23,7 @@ export class MonthsService {
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   /**
@@ -217,6 +219,12 @@ export class MonthsService {
       );
     }
 
+    // Get before state for audit log
+    const beforeState = {
+      status: scheduleMonth.status,
+      lockAt: scheduleMonth.lockAt,
+    };
+
     // Update month status to PUBLISHED and set lockAt if not already set
     const updatedMonth = await this.prisma.$transaction(async (tx) => {
       const month = await tx.scheduleMonth.update({
@@ -240,6 +248,20 @@ export class MonthsService {
       });
 
       return month;
+    });
+
+    // Log audit
+    await this.auditLogService.log({
+      storeId,
+      actorUserId: userId,
+      entityType: 'MONTH',
+      entityId: scheduleMonth.id,
+      action: 'PUBLISH',
+      before: beforeState,
+      after: {
+        status: updatedMonth.status,
+        lockAt: updatedMonth.lockAt,
+      },
     });
 
     // Notify all store members of published month

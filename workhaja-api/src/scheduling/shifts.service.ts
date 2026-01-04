@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MonthsService } from './months.service';
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { UpdateShiftDto } from './dto/update-shift.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 /**
  * ShiftsService handles shift CRUD operations
@@ -244,6 +245,15 @@ export class ShiftsService {
     if (updateShiftDto.breakMins !== undefined)
       updateData.breakMins = updateShiftDto.breakMins;
 
+    // Get before state for audit log
+    const beforeState = {
+      userId: shift.userId,
+      date: shift.date,
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+      breakMins: shift.breakMins,
+    };
+
     // Update shift
     const updatedShift = await this.prisma.shift.update({
       where: { id: shiftId },
@@ -256,6 +266,23 @@ export class ShiftsService {
             name: true,
           },
         },
+      },
+    });
+
+    // Log audit
+    await this.auditLogService.log({
+      storeId,
+      actorUserId: userId,
+      entityType: 'SHIFT',
+      entityId: shiftId,
+      action: 'UPDATE',
+      before: beforeState,
+      after: {
+        userId: updatedShift.userId,
+        date: updatedShift.date,
+        startTime: updatedShift.startTime,
+        endTime: updatedShift.endTime,
+        breakMins: updatedShift.breakMins,
       },
     });
 
@@ -319,9 +346,30 @@ export class ShiftsService {
       );
     }
 
+    // Get before state for audit log
+    const beforeState = {
+      id: shift.id,
+      userId: shift.userId,
+      date: shift.date,
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+      breakMins: shift.breakMins,
+      status: shift.status,
+    };
+
     // Delete shift
     await this.prisma.shift.delete({
       where: { id: shiftId },
+    });
+
+    // Log audit
+    await this.auditLogService.log({
+      storeId,
+      actorUserId: userId,
+      entityType: 'SHIFT',
+      entityId: shiftId,
+      action: 'DELETE',
+      before: beforeState,
     });
 
     return { ok: true };
