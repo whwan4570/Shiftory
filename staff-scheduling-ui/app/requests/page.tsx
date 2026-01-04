@@ -39,7 +39,7 @@ import {
   addCandidate,
   removeCandidate,
 } from "@/lib/requestsApi"
-import { storesApi } from "@/lib/api"
+import { storesApi, membershipsApi } from "@/lib/api"
 import type {
   ChangeRequest,
   ChangeRequestStatus,
@@ -149,7 +149,7 @@ export default function RequestsPage() {
   const loadMembers = async () => {
     if (!storeId) return
     try {
-      const memberships = await storesApi.getStoreMembers(storeId)
+      const memberships = await membershipsApi.getStoreMembers(storeId)
       setMembers(
         memberships.map((m) => ({
           id: m.userId,

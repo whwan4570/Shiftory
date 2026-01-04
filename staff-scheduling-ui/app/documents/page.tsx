@@ -43,7 +43,7 @@ import {
   updateDocument,
 } from "@/lib/documentsApi"
 import { submitMy, listMy, adminList, approve, reject, expiring, expired } from "@/lib/submissionsApi"
-import { storesApi } from "@/lib/api"
+import { storesApi, membershipsApi } from "@/lib/api"
 import type {
   Document,
   DocumentSubmission,
@@ -144,7 +144,7 @@ export default function DocumentsPage() {
   const loadMembers = async () => {
     if (!storeId) return
     try {
-      const memberships = await storesApi.getStoreMembers(storeId)
+      const memberships = await membershipsApi.getStoreMembers(storeId)
       setMembers(
         memberships.map((m) => ({
           id: m.userId,
@@ -386,7 +386,6 @@ export default function DocumentsPage() {
               {isManagerOrOwner && <TabsTrigger value="ADMIN_DOCS">Admin: Documents</TabsTrigger>}
               {isManagerOrOwner && <TabsTrigger value="ADMIN_REVIEW">Admin: Compliance Review</TabsTrigger>}
             </TabsList>
-          </Tabs>
 
           {/* Tab 1: My Documents */}
           <TabsContent value="MY_DOCS" className="space-y-4">
@@ -730,6 +729,7 @@ export default function DocumentsPage() {
               )}
             </TabsContent>
           )}
+          </Tabs>
         </main>
       </div>
 
