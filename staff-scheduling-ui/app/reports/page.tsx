@@ -324,7 +324,6 @@ export default function ReportsPage() {
               <TabsTrigger value="MONTHLY">My Monthly</TabsTrigger>
               {isManagerOrOwner && <TabsTrigger value="STAFF">Staff Monthly</TabsTrigger>}
             </TabsList>
-          </Tabs>
 
           {/* Weekly Summary */}
           <TabsContent value="WEEKLY" className="space-y-4">
@@ -597,6 +596,7 @@ export default function ReportsPage() {
               )}
             </TabsContent>
           )}
+          </Tabs>
         </main>
       </div>
     </div>
