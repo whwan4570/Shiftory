@@ -223,9 +223,12 @@ export default function ReportsPage() {
     setViewMonth(month)
   }
 
+  const weekRange = getWeekRange(weekAnchor, weekStartsOn)
+
   const handleExportWeeklyCSV = () => {
     if (!weeklySummary) return
 
+    const currentWeekRange = getWeekRange(weekAnchor, weekStartsOn)
     const headers = ["Date", "Paid Hours", "Overtime"]
     const rows = weeklySummary.byDay.map((day) => [
       formatDateForCSV(day.date),
@@ -240,7 +243,7 @@ export default function ReportsPage() {
       formatMinutesForCSV(weeklySummary.overtimeMins),
     ])
 
-    const filename = `weekly-report-${formatDateForCSV(weekRange.from)}-to-${formatDateForCSV(weekRange.to)}.csv`
+    const filename = `weekly-report-${formatDateForCSV(currentWeekRange.from)}-to-${formatDateForCSV(currentWeekRange.to)}.csv`
     downloadCSV({ headers, rows }, filename)
   }
 
