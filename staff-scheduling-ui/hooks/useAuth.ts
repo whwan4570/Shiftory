@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAuthToken, getStoreId, setStoreId, storesApi } from '@/lib/api'
+import { getAuthToken, getStoreId, setStoreId, storesApi, authApi } from '@/lib/api'
 
 /**
  * Hook for authentication and store context
@@ -17,51 +17,66 @@ export function useAuth() {
     const tokenValue = getAuthToken()
     const storedStoreId = getStoreId()
 
-    setToken(tokenValue)
-
-    // Redirect to login if no token
-    if (!tokenValue) {
-      setIsLoading(false)
-      router.replace('/login')
-      return
-    }
-
-    // Validate and update storeId from API
-    // Keep isLoading true until validation completes
-    const validateAndSetStoreId = async () => {
+    // Check authentication by calling /auth/me (works with HttpOnly cookies)
+    const checkAuth = async () => {
       try {
-        const stores = await storesApi.getStores()
-        if (stores.length > 0) {
-          // Check if stored storeId is valid (user is a member)
-          const validStore = stores.find(s => s.id === storedStoreId)
-          const selectedStoreId = validStore ? storedStoreId : stores[0].id
-          
-          // Always update localStorage with valid storeId
-          if (selectedStoreId) {
-            setStoreId(selectedStoreId)
+        // Try to get user info - this will work if HttpOnly cookie exists
+        await authApi.getMe()
+        
+        // If getMe succeeds, user is authenticated (via cookie)
+        setToken(tokenValue || 'cookie-auth') // Mark as authenticated
+        
+        // Validate and update storeId from API
+        try {
+          const stores = await storesApi.getStores()
+          if (stores.length > 0) {
+            // Check if stored storeId is valid (user is a member)
+            const validStore = stores.find(s => s.id === storedStoreId)
+            const selectedStoreId = validStore ? storedStoreId : stores[0].id
+            
+            // Always update localStorage with valid storeId
+            if (selectedStoreId) {
+              setStoreId(selectedStoreId)
+            }
+            
+            setStoreIdState(selectedStoreId)
+          } else {
+            // No stores - clear invalid storeId
+            if (storedStoreId) {
+              localStorage.removeItem('store_id')
+            }
+            setStoreIdState(null)
           }
-          
-          setStoreIdState(selectedStoreId)
-        } else {
-          // No stores - clear invalid storeId
+        } catch (err) {
+          console.error('Failed to validate storeId:', err)
+          // If API call fails, clear invalid storeId
           if (storedStoreId) {
             localStorage.removeItem('store_id')
           }
           setStoreIdState(null)
         }
       } catch (err) {
-        console.error('Failed to validate storeId:', err)
-        // If API call fails, clear invalid storeId and redirect to stores page
+        // If getMe fails, user is not authenticated
+        console.error('Authentication check failed:', err)
+        setToken(null)
+        setStoreIdState(null)
+        // Clear any invalid data
+        if (tokenValue) {
+          localStorage.removeItem('auth_token')
+        }
         if (storedStoreId) {
           localStorage.removeItem('store_id')
         }
-        setStoreIdState(null)
+        // Only redirect to login if we're not already on login page
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          router.replace('/login')
+        }
       } finally {
         setIsLoading(false)
       }
     }
 
-    validateAndSetStoreId()
+    checkAuth()
   }, [router])
 
   return {
