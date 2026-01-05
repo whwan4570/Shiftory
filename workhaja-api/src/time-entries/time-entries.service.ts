@@ -197,7 +197,46 @@ export class TimeEntriesService {
     });
 
     // If auto-approved, no notification needed
-    // If pending review, notify managers/owners (optional for MVP)
+    // If pending review, notify managers/owners
+    if (status === TimeEntryStatus.PENDING_REVIEW) {
+      try {
+        // Get all OWNER and MANAGER members
+        const managersAndOwners = await this.prisma.membership.findMany({
+          where: {
+            storeId,
+            role: {
+              in: [Role.OWNER, Role.MANAGER],
+            },
+          },
+          select: {
+            userId: true,
+          },
+        });
+
+        const managerOwnerIds = managersAndOwners.map((m) => m.userId);
+
+        if (managerOwnerIds.length > 0) {
+          await this.notificationsService.enqueueForUsers(
+            storeId,
+            managerOwnerIds,
+            NotificationType.TIME_ENTRY_PENDING,
+            'Time Entry Pending Review',
+            `${timeEntry.user.name} has a pending ${timeEntry.type.toLowerCase()} that needs review.`,
+            {
+              timeEntryId: timeEntry.id,
+              userId: timeEntry.userId,
+              userName: timeEntry.user.name,
+              type: timeEntry.type,
+              timestamp: timeEntry.timestamp,
+              flags: flags,
+            },
+          );
+        }
+      } catch (err) {
+        // Log error but don't fail the request
+        console.error('Failed to create notification for pending time entry:', err);
+      }
+    }
 
     return timeEntry;
   }

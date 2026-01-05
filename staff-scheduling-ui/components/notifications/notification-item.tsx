@@ -1,17 +1,28 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import type { Notification } from "@/types/notifications"
 
 interface NotificationItemProps {
   notification: Notification
   onMarkRead?: (notificationId: string) => void
   onClick?: (notification: Notification) => void
+  onApproveTimeEntry?: (timeEntryId: string) => Promise<void>
 }
 
-export function NotificationItem({ notification, onMarkRead, onClick }: NotificationItemProps) {
+export function NotificationItem({ 
+  notification, 
+  onMarkRead, 
+  onClick,
+  onApproveTimeEntry 
+}: NotificationItemProps) {
   const isUnread = !notification.readAt
+  const [isApproving, setIsApproving] = useState(false)
+  const isTimeEntryPending = notification.type === "TIME_ENTRY_PENDING"
+  const timeEntryId = notification.data?.timeEntryId
 
   const typeLabels: Record<string, string> = {
     DOC_EXPIRING_SOON: "Document Expiring",
@@ -19,6 +30,9 @@ export function NotificationItem({ notification, onMarkRead, onClick }: Notifica
     AVAILABILITY_DEADLINE_SOON: "Availability Deadline",
     SHIFT_REMINDER: "Shift Reminder",
     CHANGE_REQUEST_UPDATED: "Request Updated",
+    TIME_ENTRY_PENDING: "Time Entry Pending",
+    TIME_ENTRY_APPROVED: "Time Entry Approved",
+    TIME_ENTRY_REJECTED: "Time Entry Rejected",
   }
 
   const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -42,15 +56,40 @@ export function NotificationItem({ notification, onMarkRead, onClick }: Notifica
     }
   }
 
+  const handleCheckboxChange = async (checked: boolean) => {
+    if (checked && isTimeEntryPending && timeEntryId && onApproveTimeEntry) {
+      setIsApproving(true)
+      try {
+        await onApproveTimeEntry(timeEntryId)
+        // Mark notification as read after approval
+        if (onMarkRead) {
+          onMarkRead(notification.id)
+        }
+      } catch (err) {
+        console.error("Failed to approve time entry:", err)
+      } finally {
+        setIsApproving(false)
+      }
+    }
+  }
+
   return (
     <Card
-      className={`cursor-pointer transition-colors ${isUnread ? "bg-muted border-l-4 border-l-primary" : ""}`}
-      onClick={handleClick}
+      className={`transition-colors ${isUnread ? "bg-muted border-l-4 border-l-primary" : ""} ${isTimeEntryPending ? "" : "cursor-pointer"}`}
+      onClick={!isTimeEntryPending ? handleClick : undefined}
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-          {isUnread && (
+          {isUnread && !isTimeEntryPending && (
             <div className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />
+          )}
+          {isTimeEntryPending && (
+            <Checkbox
+              checked={false}
+              onCheckedChange={handleCheckboxChange}
+              disabled={isApproving || !timeEntryId}
+              className="mt-1"
+            />
           )}
           <div className="flex-1 space-y-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -63,6 +102,11 @@ export function NotificationItem({ notification, onMarkRead, onClick }: Notifica
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">{notification.message}</p>
+            {isTimeEntryPending && (
+              <p className="text-xs text-muted-foreground italic">
+                Check the box to approve this time entry
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               {new Date(notification.createdAt).toLocaleDateString()} {new Date(notification.createdAt).toLocaleTimeString()}
             </p>

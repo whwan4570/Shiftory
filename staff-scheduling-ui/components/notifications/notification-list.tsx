@@ -8,6 +8,7 @@ interface NotificationListProps {
   notifications: Notification[]
   onMarkRead?: (notificationId: string) => void
   onClick?: (notification: Notification) => void
+  onApproveTimeEntry?: (timeEntryId: string) => Promise<void>
   loading?: boolean
   emptyMessage?: string
 }
@@ -16,6 +17,7 @@ export function NotificationList({
   notifications,
   onMarkRead,
   onClick,
+  onApproveTimeEntry,
   loading,
   emptyMessage = "No notifications",
 }: NotificationListProps) {
@@ -54,6 +56,7 @@ export function NotificationList({
           notification={notification}
           onMarkRead={onMarkRead}
           onClick={onClick}
+          onApproveTimeEntry={onApproveTimeEntry}
         />
       ))}
     </div>

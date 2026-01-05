@@ -11,6 +11,7 @@ import { NotificationList } from "@/components/notifications/notification-list"
 import { NotificationFilters } from "@/components/notifications/notification-filters"
 import { useAuth } from "@/hooks/useAuth"
 import { listMy, markRead, markAllRead } from "@/lib/notificationsApi"
+import { reviewTimeEntry } from "@/lib/timeEntriesApi"
 import type { Notification, NotificationStatus } from "@/types/notifications"
 import { toast } from "sonner"
 import { AlertCircle, RefreshCw, CheckCheck } from "lucide-react"
@@ -146,6 +147,22 @@ export default function NotificationsPage() {
     }
   }
 
+  const handleApproveTimeEntry = async (timeEntryId: string) => {
+    if (!storeId) return
+
+    try {
+      await reviewTimeEntry(storeId, timeEntryId, {
+        status: "APPROVED",
+      })
+      toast.success("Time entry approved")
+      // Reload notifications to update the list
+      await loadNotifications(true)
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to approve time entry")
+      throw err
+    }
+  }
+
   if (authLoading || !storeId) {
     return (
       <div className="flex min-h-screen">
@@ -217,6 +234,7 @@ export default function NotificationsPage() {
             notifications={notifications}
             onMarkRead={handleMarkRead}
             onClick={handleNotificationClick}
+            onApproveTimeEntry={handleApproveTimeEntry}
             loading={loading}
             emptyMessage={unreadOnly ? "You're all caught up!" : "No notifications"}
           />
