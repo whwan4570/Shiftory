@@ -37,9 +37,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
-          // Try to get token from cookie first (access_token is set by auth.controller)
-          if (request?.cookies?.['access_token']) {
-            return request.cookies['access_token'];
+          // Try to get token from cookie first (auth_token is set by auth.controller)
+          if (request?.cookies?.['auth_token']) {
+            return request.cookies['auth_token'];
           }
           // Fallback to Authorization header for backward compatibility
           const authHeader = request?.headers?.authorization;
