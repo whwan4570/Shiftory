@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAuthToken, getStoreId } from '@/lib/api'
+import { getAuthToken, getStoreId, setStoreId, storesApi } from '@/lib/api'
 
 /**
  * Hook for authentication and store context
@@ -15,10 +15,9 @@ export function useAuth() {
 
   useEffect(() => {
     const tokenValue = getAuthToken()
-    const storeIdValue = getStoreId()
+    const storedStoreId = getStoreId()
 
     setToken(tokenValue)
-    setStoreIdState(storeIdValue)
     setIsLoading(false)
 
     // Redirect to login if no token
@@ -26,6 +25,33 @@ export function useAuth() {
       router.replace('/login')
       return
     }
+
+    // Validate and update storeId from API
+    const validateAndSetStoreId = async () => {
+      try {
+        const stores = await storesApi.getStores()
+        if (stores.length > 0) {
+          // Check if stored storeId is valid (user is a member)
+          const validStore = stores.find(s => s.id === storedStoreId)
+          const selectedStoreId = validStore ? storedStoreId : stores[0].id
+          
+          if (selectedStoreId && selectedStoreId !== storedStoreId) {
+            // Update localStorage with valid storeId
+            setStoreId(selectedStoreId)
+          }
+          
+          setStoreIdState(selectedStoreId)
+        } else {
+          setStoreIdState(null)
+        }
+      } catch (err) {
+        console.error('Failed to validate storeId:', err)
+        // Fallback to stored value if API call fails
+        setStoreIdState(storedStoreId)
+      }
+    }
+
+    validateAndSetStoreId()
   }, [router])
 
   return {
