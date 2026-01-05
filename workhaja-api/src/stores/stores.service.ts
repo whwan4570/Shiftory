@@ -550,6 +550,42 @@ export class StoresService {
   }
 
   /**
+   * Delete a store (only OWNER can delete)
+   * @param storeId - Store ID
+   * @param userId - User ID (must be OWNER)
+   * @returns void
+   * @throws NotFoundException if store not found
+   * @throws ForbiddenException if user is not OWNER
+   */
+  async deleteStore(storeId: string, userId: string): Promise<void> {
+    // Verify store exists
+    const store = await this.getStoreById(storeId);
+
+    // Verify user is OWNER
+    const membership = await this.prisma.membership.findUnique({
+      where: {
+        userId_storeId: {
+          userId,
+          storeId,
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('You must be a member of this store to delete it');
+    }
+
+    if (membership.role !== Role.OWNER) {
+      throw new ForbiddenException('Only OWNER can delete a store');
+    }
+
+    // Delete store (Prisma will handle cascading deletes based on schema relations)
+    await this.prisma.store.delete({
+      where: { id: storeId },
+    });
+  }
+
+  /**
    * Delete a membership (remove member from store)
    * @param storeId - Store ID
    * @param membershipId - Membership ID

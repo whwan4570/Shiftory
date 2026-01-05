@@ -246,6 +246,15 @@ export const storesApi = {
   },
 
   /**
+   * Delete a store
+   */
+  async deleteStore(storeId: string) {
+    return apiRequest<{ success: boolean }>(`/stores/${storeId}`, {
+      method: 'DELETE',
+    })
+  },
+
+  /**
    * Update a store
    */
   async updateStore(storeId: string, data: { name?: string; timezone?: string; location?: string; specialCode?: string }) {

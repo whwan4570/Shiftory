@@ -13,7 +13,8 @@ import { EditStoreModal } from "@/components/modals/edit-store-modal"
 import { InviteMemberModal } from "@/components/modals/invite-member-modal"
 import { Sidebar } from "@/components/sidebar"
 import { Topbar } from "@/components/topbar"
-import { Plus, Pencil } from "lucide-react"
+import { Plus, Pencil, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import { storesApi, membershipsApi } from "@/lib/api"
 import { useAuth } from "@/hooks/useAuth"
 import type { Store, Member } from "@/lib/types"
@@ -149,6 +150,23 @@ export default function StoresPage() {
     }
   }
 
+  const handleDeleteStore = async (storeId: string) => {
+    if (!confirm("Are you sure you want to delete this store? This action cannot be undone and will delete all associated data (shifts, schedules, documents, etc.).")) {
+      return
+    }
+    try {
+      await storesApi.deleteStore(storeId)
+      await loadStores()
+      if (selectedStoreId === storeId) {
+        setSelectedStoreId(null)
+      }
+      toast.success("Store deleted successfully")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete store")
+      toast.error(err instanceof Error ? err.message : "Failed to delete store")
+    }
+  }
+
   const selectedStore = stores.find((s) => s.id === selectedStoreId)
 
   if (isLoading) {
@@ -222,14 +240,24 @@ export default function StoresPage() {
                         </CardDescription>
                       </div>
                       {selectedStore.myRole === "OWNER" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditStoreOpen(true)}
-                        >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditStoreOpen(true)}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteStore(selectedStore.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </CardHeader>

@@ -158,6 +158,25 @@ export class StoresController {
   }
 
   /**
+   * Delete a store
+   * DELETE /stores/:storeId
+   * Headers: Authorization: Bearer <token>
+   * Requires: OWNER role in the store
+   * Returns: { success: true }
+   */
+  @Delete(':storeId')
+  @UseInterceptors(StoreContextInterceptor)
+  @UseGuards(RolesGuard)
+  @Roles(Role.OWNER)
+  async deleteStore(
+    @CurrentUser() user: RequestUser,
+    @Param('storeId') storeId: string,
+  ) {
+    await this.storesService.deleteStore(storeId, user.id);
+    return { success: true };
+  }
+
+  /**
    * Delete a membership (remove member from store)
    * DELETE /stores/:storeId/memberships/:membershipId
    * Headers: Authorization: Bearer <token>
