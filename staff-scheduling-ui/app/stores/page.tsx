@@ -14,12 +14,14 @@ import { InviteMemberModal } from "@/components/modals/invite-member-modal"
 import { Sidebar } from "@/components/sidebar"
 import { Topbar } from "@/components/topbar"
 import { Plus, Pencil } from "lucide-react"
-import { storesApi, membershipsApi, getAuthToken } from "@/lib/api"
+import { storesApi, membershipsApi } from "@/lib/api"
+import { useAuth } from "@/hooks/useAuth"
 import type { Store, Member } from "@/lib/types"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function StoresPage() {
   const router = useRouter()
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
   const [stores, setStores] = useState<Store[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
@@ -31,12 +33,14 @@ export default function StoresPage() {
 
   // Check authentication
   useEffect(() => {
-    if (!getAuthToken()) {
+    if (!authLoading && !isAuthenticated) {
       router.push("/login")
       return
     }
-    loadStores()
-  }, [router])
+    if (isAuthenticated && !authLoading) {
+      loadStores()
+    }
+  }, [router, isAuthenticated, authLoading])
 
   const loadStores = async () => {
     try {
