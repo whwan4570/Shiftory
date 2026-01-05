@@ -44,12 +44,20 @@ export default function LoginPage() {
       const response = await authApi.login({ email, password })
       console.log('Login response:', response)
       
-      // Small delay to ensure cookie is set
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Verify authentication by calling /auth/me
+      try {
+        await authApi.getMe()
+        console.log('Authentication verified')
+      } catch (verifyErr) {
+        console.error('Auth verification failed:', verifyErr)
+        throw new Error('Login succeeded but authentication verification failed. Please try again.')
+      }
+      
+      // Small delay to ensure cookie is set and state updates
+      await new Promise(resolve => setTimeout(resolve, 200))
       
       // Redirect to stores page on success
-      router.push("/stores")
-      router.refresh() // Force refresh to update auth state
+      window.location.href = "/stores" // Use window.location for full page reload
     } catch (err) {
       console.error('Login error:', err)
       const errorMessage = err instanceof Error ? err.message : "Login failed. Please try again."
