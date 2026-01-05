@@ -35,18 +35,34 @@ async function bootstrap() {
   // Enable CORS
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
   const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? [frontendUrl] // Production: single origin
+    ? [frontendUrl] // Production: use FRONTEND_URL from env
     : [frontendUrl, 'http://localhost:3001', 'http://localhost:3000']; // Development: multiple origins
+  
+  // Log allowed origins for debugging
+  console.log(`[CORS] Allowed origins: ${JSON.stringify(allowedOrigins)}`);
+  console.log(`[CORS] NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`[CORS] FRONTEND_URL: ${process.env.FRONTEND_URL}`);
   
   app.enableCors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
+      if (!origin) {
+        console.log('[CORS] Request with no origin - allowing');
+        return callback(null, true);
+      }
       
-      if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      console.log(`[CORS] Request from origin: ${origin}`);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        console.log(`[CORS] Origin allowed: ${origin}`);
+        callback(null, true);
+      } else if (process.env.NODE_ENV !== 'production') {
+        // In development, allow all origins
+        console.log(`[CORS] Development mode - allowing origin: ${origin}`);
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        console.error(`[CORS] Origin not allowed: ${origin}`);
+        callback(new Error(`Not allowed by CORS. Allowed origins: ${allowedOrigins.join(', ')}`));
       }
     },
     credentials: true,
