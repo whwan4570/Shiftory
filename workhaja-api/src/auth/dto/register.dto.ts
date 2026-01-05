@@ -20,6 +20,18 @@ export class RegisterDto {
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }) => value === 'true' || value === true)
-  isOwner?: boolean; // If true, create a store. If false or undefined, don't create a store (for workers joining via invite code)
+  @Transform(({ value }) => {
+    // Handle various input types: boolean, string 'true'/'false', undefined
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true';
+    }
+    return Boolean(value);
+  })
+  isOwner?: boolean; // If true, create a store. If false, don't create a store (for workers joining via invite code). If undefined, default to true for backward compatibility.
 }

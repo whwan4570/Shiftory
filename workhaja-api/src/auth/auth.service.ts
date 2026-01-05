@@ -42,13 +42,16 @@ export class AuthService {
    * @returns Access token and store ID (if store was created)
    */
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
-    const { email, password, name, isOwner = true } = registerDto;
+    const { email, password, name, isOwner } = registerDto;
+    // Default to true only if isOwner is undefined (for backward compatibility)
+    // Explicit false means worker registration (no store creation)
+    const shouldCreateStore = isOwner === undefined ? true : isOwner;
 
     // Create user (UsersService handles email uniqueness check)
     const user = await this.usersService.createUser(email, password, name);
 
-    // Only create a store if isOwner is true (default to true for backward compatibility)
-    if (!isOwner) {
+    // Only create a store if shouldCreateStore is true
+    if (!shouldCreateStore) {
       // Worker registration - no store created, they should join via invite code
       return this.generateToken(user);
     }
