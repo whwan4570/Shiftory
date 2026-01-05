@@ -32,10 +32,13 @@ export class AuthController {
     const expiresInDays = expiresIn.includes('d') ? parseInt(expiresIn.replace('d', '')) : 7;
     const maxAge = expiresInDays * 24 * 60 * 60 * 1000; // Convert days to milliseconds
     
+    // For cross-origin requests (Railway), we need sameSite: 'none' with secure: true
+    // But for same-origin, 'lax' is safer. We'll use 'none' in production for Railway compatibility
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('auth_token', result.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS only)
-      sameSite: 'lax', // CSRF protection
+      secure: isProduction, // Use secure cookies in production (HTTPS only)
+      sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-origin in production, 'lax' for same-origin in dev
       maxAge: maxAge,
       path: '/',
     });
@@ -62,10 +65,13 @@ export class AuthController {
     const expiresInDays = expiresIn.includes('d') ? parseInt(expiresIn.replace('d', '')) : 7;
     const maxAge = expiresInDays * 24 * 60 * 60 * 1000; // Convert days to milliseconds
     
+    // For cross-origin requests (Railway), we need sameSite: 'none' with secure: true
+    // But for same-origin, 'lax' is safer. We'll use 'none' in production for Railway compatibility
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('auth_token', result.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS only)
-      sameSite: 'lax', // CSRF protection
+      secure: isProduction, // Use secure cookies in production (HTTPS only)
+      sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-origin in production, 'lax' for same-origin in dev
       maxAge: maxAge,
       path: '/',
     });
