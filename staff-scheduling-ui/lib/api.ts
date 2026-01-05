@@ -76,14 +76,30 @@ export async function apiRequest<T>(
   })
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({
-      message: response.statusText,
-      statusCode: response.status,
-    }))
-    throw new Error(errorData.message || 'An error occurred')
+    let errorData: any
+    try {
+      const text = await response.text()
+      errorData = text ? JSON.parse(text) : { message: response.statusText }
+    } catch {
+      errorData = {
+        message: response.statusText || 'An error occurred',
+        statusCode: response.status,
+      }
+    }
+    
+    const errorMessage = errorData.message || `Request failed with status ${response.status}`
+    console.error(`API Error [${response.status}]:`, errorMessage, errorData)
+    throw new Error(errorMessage)
   }
 
-  return response.json()
+  const contentType = response.headers.get('content-type')
+  if (contentType && contentType.includes('application/json')) {
+    return response.json()
+  }
+  
+  // Handle non-JSON responses
+  const text = await response.text()
+  return (text ? JSON.parse(text) : {}) as T
 }
 
 /**

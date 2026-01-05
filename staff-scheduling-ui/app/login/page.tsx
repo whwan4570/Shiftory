@@ -21,16 +21,14 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  // Clear any existing auth data on mount
+  // Check if already logged in and redirect
   useEffect(() => {
     const token = getAuthToken()
     if (token) {
-      // If there's a token, clear it (user might be switching accounts)
-      removeAuthToken()
-      localStorage.removeItem('store_id')
-      localStorage.removeItem('auth_token')
+      // If there's a token, redirect to stores page
+      router.replace("/stores")
     }
-  }, [])
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,11 +41,19 @@ export default function LoginPage() {
 
     setIsLoading(true)
     try {
-      await authApi.login({ email, password })
+      const response = await authApi.login({ email, password })
+      console.log('Login response:', response)
+      
+      // Small delay to ensure cookie is set
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
       // Redirect to stores page on success
       router.push("/stores")
+      router.refresh() // Force refresh to update auth state
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed. Please try again.")
+      console.error('Login error:', err)
+      const errorMessage = err instanceof Error ? err.message : "Login failed. Please try again."
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
