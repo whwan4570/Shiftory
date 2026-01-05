@@ -45,6 +45,8 @@ export class StoreContextInterceptor implements NestInterceptor {
       });
 
       if (!membership) {
+        // Log for debugging
+        console.error(`[StoreContextInterceptor] Membership not found: userId=${user.id}, storeId=${storeId}`);
         throw new ForbiddenException(
           'Access denied: You are not a member of this store',
         );
