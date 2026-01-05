@@ -37,21 +37,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       super({
         jwtFromRequest: ExtractJwt.fromExtractors([
           (request: Request) => {
-            // Try to get token from cookie first (auth_token is set by auth.controller)
+            // Try Authorization header first (more reliable for cross-origin)
+            const authHeader = request?.headers?.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+              const token = authHeader.substring(7);
+              console.log('[JwtStrategy] Token found in Authorization header');
+              return token;
+            }
+            
+            // Fallback to cookie (for same-origin or when header is not available)
             const cookieToken = request?.cookies?.['auth_token'];
             if (cookieToken) {
               console.log('[JwtStrategy] Token found in cookie');
               return cookieToken;
             }
             
-            // Fallback to Authorization header for backward compatibility
-            const authHeader = request?.headers?.authorization;
-            if (authHeader && authHeader.startsWith('Bearer ')) {
-              console.log('[JwtStrategy] Token found in Authorization header');
-              return authHeader.substring(7);
-            }
-            
-            console.warn('[JwtStrategy] No token found in cookie or Authorization header');
+            console.warn('[JwtStrategy] No token found in Authorization header or cookie');
             console.warn('[JwtStrategy] Cookies:', request?.cookies);
             console.warn('[JwtStrategy] Headers:', {
               authorization: request?.headers?.authorization,
