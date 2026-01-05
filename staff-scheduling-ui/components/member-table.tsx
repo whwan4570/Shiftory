@@ -1,15 +1,17 @@
 "use client"
 
+import { useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Member } from "@/lib/types"
 import { MoreHorizontal } from "lucide-react"
 
 interface MemberTableProps {
   members: Member[]
-  onChangeRole?: (memberId: string) => void
+  onChangeRole?: (memberId: string, newRole: "OWNER" | "MANAGER" | "WORKER") => void
   onRemove?: (memberId: string) => void
 }
 
@@ -40,11 +42,31 @@ export function MemberTable({ members, onChangeRole, onRemove }: MemberTableProp
               <TableCell className="font-medium">{member.name}</TableCell>
               <TableCell>{member.email}</TableCell>
               <TableCell>
-                <Badge
-                  variant={member.role === "OWNER" ? "default" : member.role === "MANAGER" ? "secondary" : "outline"}
-                >
-                  {member.role}
-                </Badge>
+                {onChangeRole ? (
+                  <Select
+                    value={member.role}
+                    onValueChange={(value) => {
+                      if (value !== member.role) {
+                        onChangeRole(member.id, value as "OWNER" | "MANAGER" | "WORKER")
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OWNER">OWNER</SelectItem>
+                      <SelectItem value="MANAGER">MANAGER</SelectItem>
+                      <SelectItem value="WORKER">WORKER</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge
+                    variant={member.role === "OWNER" ? "default" : member.role === "MANAGER" ? "secondary" : "outline"}
+                  >
+                    {member.role}
+                  </Badge>
+                )}
               </TableCell>
               <TableCell>
                 <Badge variant={member.status === "ACTIVE" ? "default" : "secondary"}>{member.status}</Badge>
@@ -57,7 +79,6 @@ export function MemberTable({ members, onChangeRole, onRemove }: MemberTableProp
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onChangeRole?.(member.id)}>Change role</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onRemove?.(member.id)} className="text-destructive">
                       Remove
                     </DropdownMenuItem>

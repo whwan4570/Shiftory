@@ -122,16 +122,10 @@ export default function StoresPage() {
     }
   }
 
-  const handleChangeRole = async (memberId: string) => {
+  const handleChangeRole = async (memberId: string, newRole: "OWNER" | "MANAGER" | "WORKER") => {
     if (!selectedStoreId) return
-    // TODO: Open a modal to select new role
-    // For now, just show an alert
-    const newRole = prompt("Enter new role (OWNER, MANAGER, or WORKER):")
-    if (!newRole || !["OWNER", "MANAGER", "WORKER"].includes(newRole.toUpperCase())) {
-      return
-    }
     try {
-      await membershipsApi.updateMembership(selectedStoreId, memberId, { role: newRole.toUpperCase() as "OWNER" | "MANAGER" | "WORKER" })
+      await membershipsApi.updateMembership(selectedStoreId, memberId, { role: newRole })
       await loadMembers(selectedStoreId)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to change role")
