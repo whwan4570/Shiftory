@@ -35,8 +35,8 @@ async function bootstrap() {
   // Enable CORS
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
   
-  // Build allowed origins list
-  const allowedOrigins: string[] = [];
+  // Build allowed origins list (can contain strings or RegExp patterns)
+  const allowedOrigins: (string | RegExp)[] = [];
   
   // Add FRONTEND_URL if provided
   if (frontendUrl) {
@@ -54,7 +54,7 @@ async function bootstrap() {
   }
   
   // Log allowed origins for debugging
-  console.log(`[CORS] Allowed origins: ${JSON.stringify(allowedOrigins)}`);
+  console.log(`[CORS] Allowed origins: ${allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
   console.log(`[CORS] NODE_ENV: ${process.env.NODE_ENV}`);
   console.log(`[CORS] FRONTEND_URL: ${process.env.FRONTEND_URL}`);
   
@@ -87,7 +87,8 @@ async function bootstrap() {
         callback(null, true);
       } else {
         console.error(`[CORS] Origin not allowed: ${origin}`);
-        callback(new Error(`Not allowed by CORS. Allowed origins: ${allowedOrigins.join(', ')}`));
+        const allowedList = allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ');
+        callback(new Error(`Not allowed by CORS. Allowed origins: ${allowedList}`));
       }
     },
     credentials: true,
