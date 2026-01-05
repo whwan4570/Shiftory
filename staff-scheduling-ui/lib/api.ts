@@ -62,10 +62,13 @@ export async function apiRequest<T>(
     ...options.headers,
   }
 
+  // Include Authorization header if token exists (for backward compatibility)
+  // But HttpOnly cookie should be the primary authentication method
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
 
+  // Always include credentials to send HttpOnly cookies
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,

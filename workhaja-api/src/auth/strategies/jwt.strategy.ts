@@ -72,11 +72,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * @throws UnauthorizedException if user not found
    */
   async validate(payload: JwtPayload): Promise<RequestUser> {
+    console.log(`[JwtStrategy] Validating JWT payload: sub=${payload.sub}, email=${payload.email}`);
+    
     const user = await this.usersService.findById(payload.sub);
 
     if (!user) {
+      console.error(`[JwtStrategy] User not found: id=${payload.sub}`);
       throw new UnauthorizedException('User not found');
     }
+
+    console.log(`[JwtStrategy] User validated: id=${user.id}, email=${user.email}, name=${user.name}`);
 
     // Return user object that will be attached to request.user
     // Note: role is not set here - it will be determined by Membership in future stages
