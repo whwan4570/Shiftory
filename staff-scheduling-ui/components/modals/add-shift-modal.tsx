@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { formatYMD, extractYMD, compareTimes } from "@/lib/date"
@@ -180,18 +181,23 @@ export function AddShiftModal({
 
             <div className="space-y-2">
               <Label htmlFor="userId">Employee</Label>
-              <Input
-                id="userId"
-                type="text"
-                placeholder="Enter user ID"
+              <Select
                 value={userId}
-                onChange={(e) => setUserId(e.target.value)}
+                onValueChange={setUserId}
+                disabled={isPublished || members.length === 0}
                 required
-                disabled={isPublished}
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter the user ID. Member dropdown coming soon.
-              </p>
+              >
+                <SelectTrigger id="userId">
+                  <SelectValue placeholder={members.length === 0 ? "Loading members..." : "Select an employee"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {members.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name} ({member.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
