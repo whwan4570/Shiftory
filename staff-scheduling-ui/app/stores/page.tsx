@@ -71,7 +71,7 @@ export default function StoresPage() {
     try {
       const data = await membershipsApi.getStoreMembers(storeId)
       const formattedMembers: Member[] = data.map((membership) => ({
-        id: membership.user.id,
+        id: membership.id, // Use membership.id instead of user.id for member identification
         name: membership.user.name,
         email: membership.user.email,
         role: membership.role,
@@ -119,6 +119,35 @@ export default function StoresPage() {
       setInviteMemberOpen(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to invite member")
+    }
+  }
+
+  const handleChangeRole = async (memberId: string) => {
+    if (!selectedStoreId) return
+    // TODO: Open a modal to select new role
+    // For now, just show an alert
+    const newRole = prompt("Enter new role (OWNER, MANAGER, or WORKER):")
+    if (!newRole || !["OWNER", "MANAGER", "WORKER"].includes(newRole.toUpperCase())) {
+      return
+    }
+    try {
+      await membershipsApi.updateMembership(selectedStoreId, memberId, { role: newRole.toUpperCase() as "OWNER" | "MANAGER" | "WORKER" })
+      await loadMembers(selectedStoreId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to change role")
+    }
+  }
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!selectedStoreId) return
+    if (!confirm("Are you sure you want to remove this member?")) {
+      return
+    }
+    try {
+      await membershipsApi.deleteMembership(selectedStoreId, memberId)
+      await loadMembers(selectedStoreId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to remove member")
     }
   }
 
