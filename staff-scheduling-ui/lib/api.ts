@@ -69,6 +69,7 @@ export async function apiRequest<T>(
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
+    credentials: 'include', // Crucial for sending HttpOnly cookies
   })
 
   if (!response.ok) {
