@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Sidebar } from "@/components/sidebar"
 import { Topbar } from "@/components/topbar"
-import { authApi, getAuthToken, getStoreId, storesApi } from "@/lib/api"
+import { authApi, storesApi } from "@/lib/api"
 import { getLaborRules, updateLaborRules, type LaborRules } from "@/lib/settingsApi"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/hooks/useAuth"
@@ -19,7 +19,7 @@ import { toast } from "sonner"
 
 export default function SettingsPage() {
   const router = useRouter()
-  const { storeId, userId } = useAuth()
+  const { storeId, isAuthenticated, isLoading: authLoading } = useAuth()
   const [user, setUser] = useState<{
     id: string
     email: string
@@ -36,16 +36,19 @@ export default function SettingsPage() {
     // Only run on client side
     if (typeof window === 'undefined') return
     
-    if (!getAuthToken()) {
+    if (!authLoading && !isAuthenticated) {
       router.push("/login")
       return
     }
-    loadUserData()
-    if (storeId) {
-      loadSettings()
-      loadUserRole()
+    
+    if (isAuthenticated && !authLoading) {
+      loadUserData()
+      if (storeId) {
+        loadSettings()
+        loadUserRole()
+      }
     }
-  }, [router, storeId])
+  }, [router, storeId, isAuthenticated, authLoading])
 
   const loadUserData = async () => {
     try {
