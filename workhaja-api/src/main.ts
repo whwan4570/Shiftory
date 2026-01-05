@@ -34,9 +34,24 @@ async function bootstrap() {
 
   // Enable CORS
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-  const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? [frontendUrl] // Production: use FRONTEND_URL from env
-    : [frontendUrl, 'http://localhost:3001', 'http://localhost:3000']; // Development: multiple origins
+  
+  // Build allowed origins list
+  const allowedOrigins: string[] = [];
+  
+  // Add FRONTEND_URL if provided
+  if (frontendUrl) {
+    allowedOrigins.push(frontendUrl);
+  }
+  
+  // In production, also allow Railway frontend domains (for dynamic URLs)
+  if (process.env.NODE_ENV === 'production') {
+    // Allow any Railway app domain (for flexibility)
+    // This is safe because we still validate membership in the backend
+    allowedOrigins.push(/^https:\/\/.*\.up\.railway\.app$/);
+  } else {
+    // Development: allow localhost
+    allowedOrigins.push('http://localhost:3001', 'http://localhost:3000');
+  }
   
   // Log allowed origins for debugging
   console.log(`[CORS] Allowed origins: ${JSON.stringify(allowedOrigins)}`);
@@ -53,7 +68,17 @@ async function bootstrap() {
       
       console.log(`[CORS] Request from origin: ${origin}`);
       
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      // Check if origin matches any allowed origin (string or regex)
+      const isAllowed = allowedOrigins.some(allowed => {
+        if (typeof allowed === 'string') {
+          return allowed === origin;
+        } else if (allowed instanceof RegExp) {
+          return allowed.test(origin);
+        }
+        return false;
+      });
+      
+      if (isAllowed) {
         console.log(`[CORS] Origin allowed: ${origin}`);
         callback(null, true);
       } else if (process.env.NODE_ENV !== 'production') {
