@@ -90,12 +90,31 @@ export class AuthController {
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
     const isProduction = process.env.NODE_ENV === 'production';
-    res.clearCookie('auth_token', {
+    
+    // Clear cookie with all possible configurations to ensure it's removed
+    const cookieOptions = {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: isProduction ? ('none' as const) : ('lax' as const),
       path: '/',
-    });
+      maxAge: 0, // Expire immediately
+    };
+    
+    res.clearCookie('auth_token', cookieOptions);
+    
+    // Also try clearing with different sameSite values in case of mismatch
+    if (isProduction) {
+      res.clearCookie('auth_token', {
+        ...cookieOptions,
+        sameSite: 'lax' as const,
+      });
+    } else {
+      res.clearCookie('auth_token', {
+        ...cookieOptions,
+        sameSite: 'none' as const,
+        secure: true,
+      });
+    }
 
     return {
       success: true,

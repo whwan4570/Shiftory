@@ -153,9 +153,18 @@ export const authApi = {
     } catch (err) {
       console.error('Failed to logout:', err)
     }
-    // Also clear localStorage for backward compatibility
+    // Clear all localStorage data
     removeAuthToken()
     localStorage.removeItem('store_id')
+    localStorage.removeItem('auth_token')
+    // Clear all cookies (for same-origin cookies)
+    if (typeof document !== 'undefined') {
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+      })
+    }
   },
 }
 
