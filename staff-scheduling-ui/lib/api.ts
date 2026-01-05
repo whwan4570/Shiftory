@@ -76,7 +76,7 @@ export async function apiRequest<T>(
   })
 
   if (!response.ok) {
-    let errorData: any
+    let errorData: { message?: string; statusCode?: number } = {}
     try {
       const text = await response.text()
       errorData = text ? JSON.parse(text) : { message: response.statusText }
@@ -108,8 +108,10 @@ export async function apiRequest<T>(
 export const authApi = {
   /**
    * Register a new user
+   * @param data - Registration data
+   * @param data.isOwner - If true, create a store. If false, don't create a store (for workers)
    */
-  async register(data: { email: string; password: string; name: string }) {
+  async register(data: { email: string; password: string; name: string; isOwner?: boolean }) {
     // Token is now set as HttpOnly cookie by the server
     const response = await apiRequest<{ storeId?: string }>(
       '/auth/register',
@@ -155,6 +157,25 @@ export const authApi = {
       createdAt: string
       updatedAt: string
     }>('/auth/me')
+  },
+
+  /**
+   * Join a store using an invite code
+   * Token is set as HttpOnly cookie by the server
+   */
+  async join(data: { inviteCode: string; email: string; password: string; name: string }) {
+    const response = await apiRequest<{ storeId?: string }>(
+      '/auth/join',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    )
+    // Token is in HttpOnly cookie
+    if (response.storeId) {
+      setStoreId(response.storeId)
+    }
+    return response
   },
 
   /**

@@ -123,6 +123,7 @@ export default function SchedulePage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [userInfo, setUserInfo] = useState<{ id: string; email: string; name: string } | null>(null)
   const [shiftModalOpen, setShiftModalOpen] = useState(false)
+  const [quickAddDate, setQuickAddDate] = useState<Date | null>(null)
   const [createMonthModalOpen, setCreateMonthModalOpen] = useState(false)
   const [copyMonthModalOpen, setCopyMonthModalOpen] = useState(false)
   const [publishModalOpen, setPublishModalOpen] = useState(false)
@@ -613,7 +614,10 @@ export default function SchedulePage() {
 
               {(userRole === "OWNER" || userRole === "MANAGER") && contentTab === "SHIFTS" && (
                 <Button
-                  onClick={() => setShiftModalOpen(true)}
+                  onClick={() => {
+                    setQuickAddDate(null)
+                    setShiftModalOpen(true)
+                  }}
                   disabled={monthStatus === "PUBLISHED" || (viewMode === "MONTH" && monthExists === false)}
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -680,7 +684,14 @@ export default function SchedulePage() {
                         year={viewYear}
                         month={viewMonth}
                         selectedDate={selectedDate || new Date()}
-                        onSelectDate={setSelectedDate}
+                        onSelectDate={(date) => {
+                          setSelectedDate(date)
+                          // If user is OWNER or MANAGER, open quick add modal
+                          if ((userRole === "OWNER" || userRole === "MANAGER") && contentTab === "SHIFTS") {
+                            setQuickAddDate(date)
+                            setShiftModalOpen(true)
+                          }
+                        }}
                         availabilityByDate={availabilityByDate}
                         userId={userId}
                       />
@@ -697,7 +708,14 @@ export default function SchedulePage() {
                           return (
                             <button
                               key={dayKey}
-                              onClick={() => setSelectedDate(day)}
+                              onClick={() => {
+                                setSelectedDate(day)
+                                // If user is OWNER or MANAGER, open quick add modal
+                                if ((userRole === "OWNER" || userRole === "MANAGER") && contentTab === "SHIFTS") {
+                                  setQuickAddDate(day)
+                                  setShiftModalOpen(true)
+                                }
+                              }}
                               className={`w-full text-left p-2 rounded border ${
                                 isSelected
                                   ? "bg-primary text-primary-foreground"
@@ -881,11 +899,16 @@ export default function SchedulePage() {
       {/* Modals */}
       <AddShiftModal
         open={shiftModalOpen}
-        onOpenChange={setShiftModalOpen}
+        onOpenChange={(open) => {
+          setShiftModalOpen(open)
+          if (!open) {
+            setQuickAddDate(null)
+          }
+        }}
         storeId={storeId!}
         year={viewYear}
         month={viewMonth}
-        defaultDate={selectedDate || undefined}
+        defaultDate={quickAddDate || selectedDate || undefined}
         onSuccess={handleCreateShift}
         isPublished={monthStatus === "PUBLISHED"}
       />

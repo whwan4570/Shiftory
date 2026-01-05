@@ -122,6 +122,12 @@ export default function NotificationsPage() {
   }
 
   const handleNotificationClick = (notification: Notification) => {
+    // Don't navigate if it's a time entry pending notification (user should use checkbox)
+    if (notification.type === "TIME_ENTRY_PENDING" || 
+        (typeof notification.type === 'string' && notification.type.includes('TIME_ENTRY_PENDING'))) {
+      return
+    }
+    
     // Navigate based on notification type
     switch (notification.type) {
       case "CHANGE_REQUEST_UPDATED":
@@ -134,6 +140,9 @@ export default function NotificationsPage() {
       case "AVAILABILITY_DEADLINE_SOON":
       case "SHIFT_REMINDER":
         router.push("/schedule")
+        break
+      case "TIME_ENTRY_PENDING":
+        router.push("/checkin")
         break
       default:
         // Stay on notifications page

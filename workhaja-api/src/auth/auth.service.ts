@@ -1,10 +1,12 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService, SafeUser } from '../users/users.service';
 import { StoresService } from '../stores/stores.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { JoinDto } from './dto/join.dto';
 import { Role } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 /**
  * JWT payload structure
@@ -31,18 +33,25 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly storesService: StoresService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
-   * Register a new user, create a store, and return JWT token
+   * Register a new user, optionally create a store, and return JWT token
    * @param registerDto - Registration data
-   * @returns Access token and store ID
+   * @returns Access token and store ID (if store was created)
    */
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
-    const { email, password, name } = registerDto;
+    const { email, password, name, isOwner = true } = registerDto;
 
     // Create user (UsersService handles email uniqueness check)
     const user = await this.usersService.createUser(email, password, name);
+
+    // Only create a store if isOwner is true (default to true for backward compatibility)
+    if (!isOwner) {
+      // Worker registration - no store created, they should join via invite code
+      return this.generateToken(user);
+    }
 
     // Generate a unique special code for the store
     const generateSpecialCode = (): string => {
@@ -118,6 +127,65 @@ export class AuthService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });
+  }
+
+  /**
+   * Join a store using an invite code
+   * @param joinDto - Join data (invite code, email, password, name)
+   * @returns Access token and store ID
+   * @throws NotFoundException if store with invite code not found
+   * @throws BadRequestException if user already exists or is already a member
+   */
+  async join(joinDto: JoinDto): Promise<AuthResponse> {
+    const { inviteCode, email, password, name } = joinDto;
+
+    // Find store by special code (invite code)
+    const store = await this.prisma.store.findUnique({
+      where: { specialCode: inviteCode.toUpperCase() },
+    });
+
+    if (!store) {
+      throw new NotFoundException('Invalid invite code');
+    }
+
+    // Check if user already exists
+    const existingUser = await this.usersService.findByEmail(email);
+    if (existingUser) {
+      throw new BadRequestException('User with this email already exists. Please login instead.');
+    }
+
+    // Create user
+    const user = await this.usersService.createUser(email, password, name);
+
+    // Check if user is already a member (shouldn't happen, but just in case)
+    const existingMembership = await this.prisma.membership.findUnique({
+      where: {
+        userId_storeId: {
+          userId: user.id,
+          storeId: store.id,
+        },
+      },
+    });
+
+    if (existingMembership) {
+      throw new BadRequestException('You are already a member of this store');
+    }
+
+    // Add user to store as WORKER by default
+    await this.prisma.membership.create({
+      data: {
+        userId: user.id,
+        storeId: store.id,
+        role: Role.WORKER,
+        permissions: [],
+      },
+    });
+
+    // Generate and return JWT token with store ID
+    return {
+      ...this.generateToken(user),
+      storeId: store.id,
+    };
   }
 
   /**

@@ -61,9 +61,22 @@ export default function SignUpPage() {
         email: formData.email,
         password: formData.password,
         name: name,
+        isOwner: isOwner, // Pass isOwner flag to backend
       })
+      // Verify authentication by calling /auth/me
+      try {
+        await authApi.getMe()
+        console.log('Authentication verified')
+      } catch (verifyErr) {
+        console.error('Auth verification failed:', verifyErr)
+        throw new Error('Registration succeeded but authentication verification failed. Please try again.')
+      }
+      
+      // Small delay to ensure cookie is set and state updates
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
       // Redirect to stores page on success
-      router.push("/stores")
+      window.location.href = "/stores" // Use window.location for full page reload
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.")
     } finally {

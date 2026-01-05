@@ -11,10 +11,12 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff } from "lucide-react"
-import { authApi, getAuthToken, removeAuthToken } from "@/lib/api"
+import { authApi } from "@/lib/api"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -23,12 +25,10 @@ export default function LoginPage() {
 
   // Check if already logged in and redirect
   useEffect(() => {
-    const token = getAuthToken()
-    if (token) {
-      // If there's a token, redirect to stores page
+    if (!authLoading && isAuthenticated) {
       router.replace("/stores")
     }
-  }, [router])
+  }, [authLoading, isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

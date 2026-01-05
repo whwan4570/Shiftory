@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { JoinDto } from './dto/join.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { RequestUser } from './strategies/jwt.strategy';
@@ -118,6 +119,38 @@ export class AuthController {
 
     return {
       success: true,
+    };
+  }
+
+  /**
+   * Join a store using an invite code
+   * POST /auth/join
+   * Body: { inviteCode, email, password, name }
+   * Returns: { storeId }
+   * Sets JWT token as HttpOnly cookie
+   * Creates a new user account and adds them to the store as WORKER
+   */
+  @Post('join')
+  async join(@Body() joinDto: JoinDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.join(joinDto);
+    
+    // Set JWT token as HttpOnly cookie
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    const expiresInDays = expiresIn.includes('d') ? parseInt(expiresIn.replace('d', '')) : 7;
+    const maxAge = expiresInDays * 24 * 60 * 60 * 1000; // Convert days to milliseconds
+    
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('auth_token', result.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: maxAge,
+      path: '/',
+    });
+
+    // Return response without token (token is in cookie)
+    return {
+      storeId: result.storeId,
     };
   }
 

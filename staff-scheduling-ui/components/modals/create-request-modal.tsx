@@ -110,7 +110,15 @@ export function CreateRequestModal({
 
     setIsLoading(true)
     try {
-      const payload: any = {
+      const payload: {
+        type: ChangeRequestType
+        shiftId: string
+        reason?: string
+        proposedStartTime?: string
+        proposedEndTime?: string
+        proposedBreakMins?: number
+        swapShiftId?: string
+      } = {
         type: requestType,
         shiftId: shift.id,
         reason: reason || undefined,

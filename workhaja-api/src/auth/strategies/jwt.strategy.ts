@@ -41,23 +41,29 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             const authHeader = request?.headers?.authorization;
             if (authHeader && authHeader.startsWith('Bearer ')) {
               const token = authHeader.substring(7);
-              console.log('[JwtStrategy] Token found in Authorization header');
+              if (process.env.NODE_ENV !== 'production') {
+                console.log('[JwtStrategy] Token found in Authorization header');
+              }
               return token;
             }
             
             // Fallback to cookie (for same-origin or when header is not available)
             const cookieToken = request?.cookies?.['auth_token'];
             if (cookieToken) {
-              console.log('[JwtStrategy] Token found in cookie');
+              if (process.env.NODE_ENV !== 'production') {
+                console.log('[JwtStrategy] Token found in cookie');
+              }
               return cookieToken;
             }
             
-            console.warn('[JwtStrategy] No token found in Authorization header or cookie');
-            console.warn('[JwtStrategy] Cookies:', request?.cookies);
-            console.warn('[JwtStrategy] Headers:', {
-              authorization: request?.headers?.authorization,
-              cookie: request?.headers?.cookie,
-            });
+            if (process.env.NODE_ENV !== 'production') {
+              console.warn('[JwtStrategy] No token found in Authorization header or cookie');
+              console.warn('[JwtStrategy] Cookies:', request?.cookies);
+              console.warn('[JwtStrategy] Headers:', {
+                authorization: request?.headers?.authorization,
+                cookie: request?.headers?.cookie,
+              });
+            }
             return null;
           },
         ]),
@@ -73,7 +79,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * @throws UnauthorizedException if user not found
    */
   async validate(payload: JwtPayload): Promise<RequestUser> {
-    console.log(`[JwtStrategy] Validating JWT payload: sub=${payload.sub}, email=${payload.email}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[JwtStrategy] Validating JWT payload: sub=${payload.sub}, email=${payload.email}`);
+    }
     
     const user = await this.usersService.findById(payload.sub);
 
@@ -82,7 +90,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found');
     }
 
-    console.log(`[JwtStrategy] User validated: id=${user.id}, email=${user.email}, name=${user.name}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[JwtStrategy] User validated: id=${user.id}, email=${user.email}, name=${user.name}`);
+    }
 
     // Return user object that will be attached to request.user
     // Note: role is not set here - it will be determined by Membership in future stages

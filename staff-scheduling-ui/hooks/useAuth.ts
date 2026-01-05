@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAuthToken, getStoreId, setStoreId, storesApi, authApi } from '@/lib/api'
+import { getStoreId, setStoreId, storesApi, authApi } from '@/lib/api'
 
 /**
  * Hook for authentication and store context
+ * Uses HttpOnly cookies for authentication (no localStorage token needed)
  */
 export function useAuth() {
   const router = useRouter()
@@ -14,7 +15,6 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const tokenValue = getAuthToken()
     const storedStoreId = getStoreId()
 
     // Check authentication by calling /auth/me (works with HttpOnly cookies)
@@ -23,8 +23,8 @@ export function useAuth() {
         // Try to get user info - this will work if HttpOnly cookie exists
         await authApi.getMe()
         
-        // If getMe succeeds, user is authenticated (via cookie)
-        setToken(tokenValue || 'cookie-auth') // Mark as authenticated
+        // If getMe succeeds, user is authenticated (via HttpOnly cookie)
+        setToken('cookie-auth') // Mark as authenticated
         
         // Validate and update storeId from API
         try {
@@ -61,9 +61,6 @@ export function useAuth() {
         setToken(null)
         setStoreIdState(null)
         // Clear any invalid data
-        if (tokenValue) {
-          localStorage.removeItem('auth_token')
-        }
         if (storedStoreId) {
           localStorage.removeItem('store_id')
         }

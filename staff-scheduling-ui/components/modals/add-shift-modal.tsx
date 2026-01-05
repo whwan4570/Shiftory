@@ -41,7 +41,9 @@ export function AddShiftModal({
   onSuccess,
   isPublished = false,
 }: AddShiftModalProps) {
+  const [step, setStep] = useState<"selectEmployee" | "setTime">("selectEmployee")
   const [userId, setUserId] = useState("")
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [date, setDate] = useState("")
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
@@ -62,7 +64,24 @@ export function AddShiftModal({
     if (open && defaultDate) {
       setDate(formatYMD(defaultDate))
     }
+    // Reset step when modal opens
+    if (open) {
+      setStep("selectEmployee")
+      setUserId("")
+      setSelectedMember(null)
+      setStartTime("")
+      setEndTime("")
+      setBreakMins("0")
+      setError("")
+    }
   }, [open, defaultDate])
+
+  const handleEmployeeSelect = (member: Member) => {
+    setUserId(member.id)
+    setSelectedMember(member)
+    setStep("setTime")
+    setError("")
+  }
 
   const loadMembers = async () => {
     try {
@@ -126,11 +145,13 @@ export function AddShiftModal({
 
       // Reset form
       setUserId("")
+      setSelectedMember(null)
       setDate(defaultDate ? formatYMD(defaultDate) : "")
       setStartTime("")
       setEndTime("")
       setBreakMins("0")
       setError("")
+      setStep("selectEmployee")
 
       onSuccess?.()
       onOpenChange(false)
@@ -149,18 +170,31 @@ export function AddShiftModal({
   const handleClose = () => {
     if (!isLoading) {
       setError("")
+      setStep("selectEmployee")
+      setUserId("")
+      setSelectedMember(null)
       onOpenChange(false)
     }
   }
 
+  const handleBack = () => {
+    setStep("selectEmployee")
+    setError("")
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add Shift</DialogTitle>
+            <DialogTitle>
+              {step === "selectEmployee" ? "Select Employee" : "Set Shift Time"}
+            </DialogTitle>
             <DialogDescription>
-              Create a new shift for an employee.
+              {step === "selectEmployee" 
+                ? `Select an employee to create a shift${defaultDate ? ` for ${formatYMD(defaultDate)}` : ""}.`
+                : `Set working hours for ${selectedMember?.name || "employee"}.`
+              }
               {isPublished && (
                 <Alert variant="destructive" className="mt-2">
                   <AlertCircle className="h-4 w-4" />
@@ -179,79 +213,105 @@ export function AddShiftModal({
               </Alert>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="userId">Employee</Label>
-              <Select
-                value={userId}
-                onValueChange={setUserId}
-                disabled={isPublished || members.length === 0}
-                required
-              >
-                <SelectTrigger id="userId">
-                  <SelectValue placeholder={members.length === 0 ? "Loading members..." : "Select an employee"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {members.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      {member.name} ({member.email})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-                disabled={isPublished}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            {step === "selectEmployee" ? (
               <div className="space-y-2">
-                <Label htmlFor="startTime">Start Time</Label>
-                <Input
-                  id="startTime"
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  required
-                  disabled={isPublished}
-                />
+                <Label>Select Employee</Label>
+                {members.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Loading members...
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto">
+                    {members.map((member) => (
+                      <button
+                        key={member.id}
+                        type="button"
+                        onClick={() => handleEmployeeSelect(member)}
+                        disabled={isPublished}
+                        className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent hover:border-primary transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div>
+                          <p className="font-medium">{member.name}</p>
+                          <p className="text-sm text-muted-foreground">{member.email}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {member.role}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="endTime">End Time</Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  required
-                  disabled={isPublished}
-                />
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    required
+                    disabled={isPublished}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="breakMins">Break Minutes</Label>
-              <Input
-                id="breakMins"
-                type="number"
-                min="0"
-                step="15"
-                value={breakMins}
-                onChange={(e) => setBreakMins(e.target.value)}
-                required
-                disabled={isPublished}
-              />
-            </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime">Start Time</Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      required
+                      disabled={isPublished}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endTime">End Time</Label>
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      required
+                      disabled={isPublished}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="breakMins">Break Minutes</Label>
+                  <Input
+                    id="breakMins"
+                    type="number"
+                    min="0"
+                    step="15"
+                    value={breakMins}
+                    onChange={(e) => setBreakMins(e.target.value)}
+                    required
+                    disabled={isPublished}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter break time in minutes (e.g., 30 for 30 minutes)
+                  </p>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
+            {step === "setTime" && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleBack}
+                disabled={isLoading}
+              >
+                Back
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -260,9 +320,11 @@ export function AddShiftModal({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || isPublished}>
-              {isLoading ? "Creating..." : "Create Shift"}
-            </Button>
+            {step === "setTime" && (
+              <Button type="submit" disabled={isLoading || isPublished}>
+                {isLoading ? "Creating..." : "Create Shift"}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

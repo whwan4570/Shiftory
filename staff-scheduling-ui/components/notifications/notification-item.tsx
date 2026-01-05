@@ -21,8 +21,20 @@ export function NotificationItem({
 }: NotificationItemProps) {
   const isUnread = !notification.readAt
   const [isApproving, setIsApproving] = useState(false)
-  const isTimeEntryPending = notification.type === "TIME_ENTRY_PENDING"
-  const timeEntryId = notification.data?.timeEntryId
+  // Check for TIME_ENTRY_PENDING type (handle both enum and string)
+  // Also check if the notification message/title indicates a pending time entry
+  const isTimeEntryPending = notification.type === "TIME_ENTRY_PENDING" || 
+                            (typeof notification.type === 'string' && notification.type.includes('TIME_ENTRY_PENDING')) ||
+                            (notification.title?.toLowerCase().includes('pending') && 
+                             (notification.message?.toLowerCase().includes('check_in') || 
+                              notification.message?.toLowerCase().includes('check_out') ||
+                              notification.message?.toLowerCase().includes('check-in') ||
+                              notification.message?.toLowerCase().includes('check-out')))
+  
+  // Extract timeEntryId from various possible data structures
+  const timeEntryId = notification.data?.timeEntryId || 
+                      notification.data?.timeEntry?.id ||
+                      (typeof notification.data === 'object' && notification.data !== null && 'timeEntryId' in notification.data ? (notification.data as any).timeEntryId : null)
 
   const typeLabels: Record<string, string> = {
     DOC_EXPIRING_SOON: "Document Expiring",
@@ -80,17 +92,22 @@ export function NotificationItem({
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-          {isUnread && !isTimeEntryPending && (
+          {!isTimeEntryPending && isUnread && (
             <div className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />
           )}
-          {isTimeEntryPending && (
-            <Checkbox
-              checked={false}
-              onCheckedChange={handleCheckboxChange}
-              disabled={isApproving || !timeEntryId}
-              className="mt-1"
-            />
-          )}
+          {isTimeEntryPending ? (
+            <div className="mt-1 shrink-0">
+              <Checkbox
+                checked={false}
+                onCheckedChange={handleCheckboxChange}
+                disabled={isApproving || !timeEntryId || !onApproveTimeEntry}
+                className="h-5 w-5"
+                aria-label={notification.data?.type === 'CHECK_OUT' || notification.message?.toLowerCase().includes('check-out') || notification.message?.toLowerCase().includes('check_out')
+                  ? 'Approve check-out'
+                  : 'Approve time entry'}
+              />
+            </div>
+          ) : null}
           <div className="flex-1 space-y-1 min-w-0">
             <div className="flex items-center gap-2">
               <h4 className="font-semibold text-sm">{notification.title}</h4>
@@ -104,7 +121,9 @@ export function NotificationItem({
             <p className="text-sm text-muted-foreground">{notification.message}</p>
             {isTimeEntryPending && (
               <p className="text-xs text-muted-foreground italic">
-                Check the box to approve this time entry
+                {notification.data?.type === 'CHECK_OUT' || notification.message?.toLowerCase().includes('check-out') || notification.message?.toLowerCase().includes('check_out')
+                  ? 'Check the box to approve this check-out'
+                  : 'Check the box to approve this time entry'}
               </p>
             )}
             <p className="text-xs text-muted-foreground">

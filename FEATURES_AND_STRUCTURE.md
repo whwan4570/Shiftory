@@ -3,10 +3,16 @@
 ## 📋 구현된 주요 기능
 
 ### 1. 인증 및 사용자 관리 (Auth)
-- ✅ 사용자 회원가입 (Store 자동 생성 및 OWNER 역할 부여)
-- ✅ 로그인 (JWT 기반)
+- ✅ 사용자 회원가입 (Store 자동 생성 옵션, OWNER 역할 부여)
+  - 오너 회원가입: Store 자동 생성
+  - 직원 회원가입: Store 생성 없음 (invite code로 가입)
+- ✅ Invite Code로 Store 가입 (직원용)
+  - Store의 special code를 사용하여 가입
+  - 자동으로 WORKER 역할 부여
+- ✅ 로그인 (JWT 기반, HttpOnly 쿠키)
+- ✅ 로그아웃 (쿠키 삭제)
 - ✅ 현재 사용자 정보 조회
-- ✅ JWT 토큰 인증 미들웨어
+- ✅ JWT 토큰 인증 미들웨어 (HttpOnly 쿠키 + Authorization 헤더 fallback)
 
 ### 2. Store 관리 (Stores)
 - ✅ Store 생성 (이름, 타임존, 위치, 특수 코드)
@@ -38,6 +44,8 @@
 - ✅ 스케줄 발행 (PUBLISHED 상태)
 - ✅ 근무 시간(Shift) CRUD
   - 생성 (날짜, 시작/종료 시간, 휴게 시간)
+  - 날짜 클릭으로 빠른 생성 (아이폰 캘린더 스타일)
+  - 2단계 플로우: 직원 선택 → 시간 설정
   - 수정
   - 삭제
 - ✅ 가용성(Availability) 제출
@@ -78,10 +86,14 @@
   - DOCUMENT_EXPIRED (문서 만료)
   - AVAILABILITY_DEADLINE_APPROACHING (가용성 마감일 임박)
   - SHIFT_REMINDER (근무 알림)
+  - TIME_ENTRY_PENDING (시간 기록 대기 중 - 체크인/체크아웃)
   - TIME_ENTRY_APPROVED (시간 기록 승인)
   - TIME_ENTRY_REJECTED (시간 기록 거부)
 - ✅ 알림 목록 조회 (읽음/읽지 않음 필터)
 - ✅ 알림 읽음 표시 (개별/전체)
+- ✅ TIME_ENTRY_PENDING 알림 체크박스 승인
+  - 체크인/체크아웃 대기 중인 시간 기록을 알림에서 직접 승인
+  - 오너/매니저만 승인 가능
 
 ### 7-1. 변경 이력 (Audit Log)
 - ✅ 모든 중요 작업 자동 기록
@@ -259,6 +271,13 @@ workhaja-api/
 
 #### 인증 (Auth)
 - `POST /auth/register` - 회원가입 (JWT 토큰을 HttpOnly 쿠키로 설정)
+  - Body: `{ email, password, name, isOwner? }`
+  - `isOwner: true` (기본값): Store 자동 생성 및 OWNER 역할 부여
+  - `isOwner: false`: Store 생성 없음 (직원용, invite code로 가입 필요)
+- `POST /auth/join` - Invite Code로 Store 가입 (JWT 토큰을 HttpOnly 쿠키로 설정)
+  - Body: `{ inviteCode, email, password, name }`
+  - Store의 special code를 사용하여 가입
+  - 자동으로 WORKER 역할 부여
 - `POST /auth/login` - 로그인 (JWT 토큰을 HttpOnly 쿠키로 설정)
 - `POST /auth/logout` - 로그아웃 (쿠키 삭제)
 - `GET /auth/me` - 현재 사용자 정보
@@ -306,6 +325,7 @@ workhaja-api/
 - `GET /stores/:storeId/notifications` - 알림 목록
 - `PUT /stores/:storeId/notifications/:notificationId/read` - 읽음 표시
 - `PUT /stores/:storeId/notifications/read-all` - 전체 읽음 표시
+- TIME_ENTRY_PENDING 알림: 체크박스를 통해 시간 기록 직접 승인 가능
 
 #### 시간 기록
 - `POST /stores/:storeId/time-entries` - 체크인/체크아웃

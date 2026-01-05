@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,23 +10,27 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff } from "lucide-react"
+import { authApi } from "@/lib/api"
 
 export default function JoinPage() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     inviteCode: "",
     email: "",
     password: "",
     confirmPassword: "",
+    name: "",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
-    if (!formData.inviteCode || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.inviteCode || !formData.email || !formData.password || !formData.confirmPassword || !formData.name) {
       setError("Please fill in all fields")
       return
     }
@@ -40,8 +45,36 @@ export default function JoinPage() {
       return
     }
 
-    // Placeholder for join logic
-    console.log("Join attempt:", formData)
+    setIsLoading(true)
+    try {
+      await authApi.join({
+        inviteCode: formData.inviteCode.toUpperCase(),
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+      })
+      
+      // Verify authentication by calling /auth/me
+      try {
+        await authApi.getMe()
+        console.log('Authentication verified')
+      } catch (verifyErr) {
+        console.error('Auth verification failed:', verifyErr)
+        throw new Error('Join succeeded but authentication verification failed. Please try again.')
+      }
+      
+      // Small delay to ensure cookie is set and state updates
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      // Redirect to stores page on success
+      window.location.href = "/stores" // Use window.location for full page reload
+    } catch (err) {
+      console.error('Join error:', err)
+      const errorMessage = err instanceof Error ? err.message : "Failed to join. Please check your invite code and try again."
+      setError(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const updateFormData = (field: string, value: string) => {
@@ -74,6 +107,18 @@ export default function JoinPage() {
                 onChange={(e) => updateFormData("inviteCode", e.target.value.toUpperCase())}
                 required
                 className="font-mono"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Your name"
+                value={formData.name}
+                onChange={(e) => updateFormData("name", e.target.value)}
+                required
               />
             </div>
 
