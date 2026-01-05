@@ -12,6 +12,7 @@ import { StoresService } from './stores.service';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { CreateMembershipDto } from './dto/create-membership.dto';
+import { UpdateMembershipDto } from './dto/update-membership.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -127,6 +128,52 @@ export class StoresController {
       user.id,
       createMembershipDto,
     );
+  }
+
+  /**
+   * Update a membership (change role or permissions)
+   * PUT /stores/:storeId/memberships/:membershipId
+   * Headers: Authorization: Bearer <token>
+   * Body: { role?, permissions? }
+   * Requires: OWNER role in the store
+   * Returns: Updated membership
+   */
+  @Put(':storeId/memberships/:membershipId')
+  @UseInterceptors(StoreContextInterceptor)
+  @UseGuards(RolesGuard)
+  @Roles(Role.OWNER)
+  async updateMembership(
+    @CurrentUser() user: RequestUser,
+    @Param('storeId') storeId: string,
+    @Param('membershipId') membershipId: string,
+    @Body() updateMembershipDto: UpdateMembershipDto,
+  ) {
+    return this.storesService.updateMembership(
+      storeId,
+      membershipId,
+      user.id,
+      updateMembershipDto,
+    );
+  }
+
+  /**
+   * Delete a membership (remove member from store)
+   * DELETE /stores/:storeId/memberships/:membershipId
+   * Headers: Authorization: Bearer <token>
+   * Requires: OWNER role in the store
+   * Returns: void
+   */
+  @Delete(':storeId/memberships/:membershipId')
+  @UseInterceptors(StoreContextInterceptor)
+  @UseGuards(RolesGuard)
+  @Roles(Role.OWNER)
+  async deleteMembership(
+    @CurrentUser() user: RequestUser,
+    @Param('storeId') storeId: string,
+    @Param('membershipId') membershipId: string,
+  ) {
+    await this.storesService.deleteMembership(storeId, membershipId, user.id);
+    return { success: true };
   }
 
   /**

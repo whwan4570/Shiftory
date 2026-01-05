@@ -280,5 +280,36 @@ export const membershipsApi = {
       body: JSON.stringify(data),
     })
   },
+
+  /**
+   * Update a membership (change role)
+   */
+  async updateMembership(storeId: string, membershipId: string, data: { role?: 'OWNER' | 'MANAGER' | 'WORKER'; permissions?: string[] }) {
+    return apiRequest<{
+      id: string
+      userId: string
+      storeId: string
+      role: 'OWNER' | 'MANAGER' | 'WORKER'
+      createdAt: string
+      updatedAt: string
+      user: {
+        id: string
+        email: string
+        name: string
+      }
+    }>(`/stores/${storeId}/memberships/${membershipId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  },
+
+  /**
+   * Delete a membership (remove member)
+   */
+  async deleteMembership(storeId: string, membershipId: string) {
+    return apiRequest<void>(`/stores/${storeId}/memberships/${membershipId}`, {
+      method: 'DELETE',
+    })
+  },
 }
 

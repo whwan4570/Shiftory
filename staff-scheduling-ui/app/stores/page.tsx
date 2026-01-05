@@ -220,7 +220,11 @@ export default function StoresPage() {
                             Invite Member
                           </Button>
                         </div>
-                        <MemberTable members={members} />
+                        <MemberTable 
+                          members={members} 
+                          onChangeRole={handleChangeRole}
+                          onRemove={handleRemoveMember}
+                        />
                       </TabsContent>
                       <TabsContent value="rules">
                         <div className="rounded-lg border border-dashed p-12 text-center">

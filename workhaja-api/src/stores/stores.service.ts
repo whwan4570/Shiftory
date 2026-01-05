@@ -448,5 +448,169 @@ export class StoresService {
       },
     }));
   }
+
+  /**
+   * Update a membership (change role or permissions)
+   * @param storeId - Store ID
+   * @param membershipId - Membership ID
+   * @param userId - ID of the user updating the membership (must be OWNER)
+   * @param updateMembershipDto - Membership update data
+   * @returns Updated membership
+   * @throws NotFoundException if membership not found
+   * @throws ForbiddenException if requester is not OWNER
+   */
+  async updateMembership(
+    storeId: string,
+    membershipId: string,
+    userId: string,
+    updateMembershipDto: { role?: Role; permissions?: string[] },
+  ): Promise<MembershipResponse> {
+    // Verify store exists
+    await this.getStoreById(storeId);
+
+    // Find membership
+    const membership = await this.prisma.membership.findUnique({
+      where: { id: membershipId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('Membership not found');
+    }
+
+    if (membership.storeId !== storeId) {
+      throw new NotFoundException('Membership does not belong to this store');
+    }
+
+    // Verify requester is OWNER
+    const requesterMembership = await this.prisma.membership.findUnique({
+      where: {
+        userId_storeId: {
+          userId: userId,
+          storeId: storeId,
+        },
+      },
+    });
+
+    if (!requesterMembership || requesterMembership.role !== Role.OWNER) {
+      throw new ForbiddenException('Only OWNER can update memberships');
+    }
+
+    // Prepare update data
+    const updateData: any = {};
+    if (updateMembershipDto.role !== undefined) {
+      updateData.role = updateMembershipDto.role;
+    }
+    if (updateMembershipDto.permissions !== undefined) {
+      // Only set permissions for MANAGER role
+      if (updateMembershipDto.role === Role.MANAGER || (!updateMembershipDto.role && membership.role === Role.MANAGER)) {
+        updateData.permissions = updateMembershipDto.permissions;
+      } else {
+        // OWNER and WORKER don't need permissions
+        updateData.permissions = null;
+      }
+    }
+
+    // Update membership
+    const updatedMembership = await this.prisma.membership.update({
+      where: { id: membershipId },
+      data: updateData,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: updatedMembership.id,
+      userId: updatedMembership.userId,
+      storeId: updatedMembership.storeId,
+      role: updatedMembership.role,
+      createdAt: updatedMembership.createdAt,
+      updatedAt: updatedMembership.updatedAt,
+      user: {
+        id: updatedMembership.user.id,
+        email: updatedMembership.user.email,
+        name: updatedMembership.user.name,
+      },
+    };
+  }
+
+  /**
+   * Delete a membership (remove member from store)
+   * @param storeId - Store ID
+   * @param membershipId - Membership ID
+   * @param userId - ID of the user deleting the membership (must be OWNER)
+   * @throws NotFoundException if membership not found
+   * @throws ForbiddenException if requester is not OWNER
+   * @throws BadRequestException if trying to remove the last OWNER
+   */
+  async deleteMembership(
+    storeId: string,
+    membershipId: string,
+    userId: string,
+  ): Promise<void> {
+    // Verify store exists
+    await this.getStoreById(storeId);
+
+    // Find membership
+    const membership = await this.prisma.membership.findUnique({
+      where: { id: membershipId },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('Membership not found');
+    }
+
+    if (membership.storeId !== storeId) {
+      throw new NotFoundException('Membership does not belong to this store');
+    }
+
+    // Verify requester is OWNER
+    const requesterMembership = await this.prisma.membership.findUnique({
+      where: {
+        userId_storeId: {
+          userId: userId,
+          storeId: storeId,
+        },
+      },
+    });
+
+    if (!requesterMembership || requesterMembership.role !== Role.OWNER) {
+      throw new ForbiddenException('Only OWNER can remove members');
+    }
+
+    // Prevent removing the last OWNER
+    if (membership.role === Role.OWNER) {
+      const ownerCount = await this.prisma.membership.count({
+        where: {
+          storeId: storeId,
+          role: Role.OWNER,
+        },
+      });
+
+      if (ownerCount <= 1) {
+        throw new BadRequestException('Cannot remove the last OWNER from the store');
+      }
+    }
+
+    // Delete membership
+    await this.prisma.membership.delete({
+      where: { id: membershipId },
+    });
+  }
 }
 
