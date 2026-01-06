@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -19,6 +19,8 @@ import {
   QrCode,
 } from "lucide-react"
 import { TimeSummaryCard } from "@/components/time-summary-card"
+import { useAuth } from "@/hooks/useAuth"
+import { storesApi } from "@/lib/api"
 
 const navItems = [
   { href: "/stores", label: "Stores", icon: Building2 },
@@ -31,9 +33,38 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ]
 
+const managerOnlyNavItems = [
+  { href: "/qrcode", label: "QR Code", icon: QrCode },
+]
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const [userRole, setUserRole] = useState<"OWNER" | "MANAGER" | "WORKER" | null>(null)
   const pathname = usePathname()
+  const { storeId, isLoading: authLoading } = useAuth()
+
+  // Load user role
+  useEffect(() => {
+    const loadUserRole = async () => {
+      if (!storeId || authLoading) return
+      try {
+        const stores = await storesApi.getStores()
+        const store = stores.find((s) => s.id === storeId)
+        if (store && store.role) {
+          setUserRole(store.role as "OWNER" | "MANAGER" | "WORKER")
+        } else {
+          setUserRole("WORKER")
+        }
+      } catch (err) {
+        console.error("Failed to load user role:", err)
+        setUserRole("WORKER")
+      }
+    }
+    loadUserRole()
+  }, [storeId, authLoading])
+
+  const isManagerOrOwner = userRole === "OWNER" || userRole === "MANAGER"
+  const allNavItems = [...navItems, ...(isManagerOrOwner ? managerOnlyNavItems : [])]
 
   return (
     <aside
@@ -53,7 +84,7 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 p-2 overflow-y-auto">
-          {navItems.map((item) => {
+          {allNavItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
 
