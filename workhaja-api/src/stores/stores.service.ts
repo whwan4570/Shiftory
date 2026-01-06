@@ -35,6 +35,8 @@ export interface MembershipResponse {
   userId: string;
   storeId: string;
   role: Role;
+  position?: string | null;
+  skills?: string[];
   createdAt: Date;
   updatedAt: Date;
   user: {
@@ -267,7 +269,7 @@ export class StoresService {
     userId: string,
     createMembershipDto: CreateMembershipDto,
   ): Promise<MembershipResponse> {
-    const { email, role } = createMembershipDto;
+    const { email, role, position, skills } = createMembershipDto;
 
     // Verify store exists
     await this.getStoreById(storeId);
@@ -331,6 +333,8 @@ export class StoresService {
         userId: user.id,
         storeId: storeId,
         role: role,
+        position: position,
+        skills: skills || [],
         permissions: permissions,
       },
       include: {
@@ -349,6 +353,8 @@ export class StoresService {
       userId: membership.userId,
       storeId: membership.storeId,
       role: membership.role,
+      position: membership.position,
+      skills: membership.skills || [],
       createdAt: membership.createdAt,
       updatedAt: membership.updatedAt,
       user: {
@@ -397,6 +403,8 @@ export class StoresService {
       userId: membership.userId,
       storeId: membership.storeId,
       role: membership.role,
+      position: membership.position,
+      skills: membership.skills || [],
       createdAt: membership.createdAt,
       updatedAt: membership.updatedAt,
       user: {
@@ -439,6 +447,8 @@ export class StoresService {
       userId: membership.userId,
       storeId: membership.storeId,
       role: membership.role,
+      position: membership.position,
+      skills: membership.skills || [],
       createdAt: membership.createdAt,
       updatedAt: membership.updatedAt,
       user: {
@@ -463,7 +473,12 @@ export class StoresService {
     storeId: string,
     membershipId: string,
     userId: string,
-    updateMembershipDto: { role?: Role; permissions?: string[] },
+    updateMembershipDto: {
+      role?: Role;
+      permissions?: string[];
+      position?: string;
+      skills?: string[];
+    },
   ): Promise<MembershipResponse> {
     // Verify store exists
     await this.getStoreById(storeId);
@@ -509,6 +524,12 @@ export class StoresService {
     if (updateMembershipDto.role !== undefined) {
       updateData.role = updateMembershipDto.role;
     }
+    if (updateMembershipDto.position !== undefined) {
+      updateData.position = updateMembershipDto.position;
+    }
+    if (updateMembershipDto.skills !== undefined) {
+      updateData.skills = updateMembershipDto.skills;
+    }
     if (updateMembershipDto.permissions !== undefined) {
       // Only set permissions for MANAGER role
       if (updateMembershipDto.role === Role.MANAGER || (!updateMembershipDto.role && membership.role === Role.MANAGER)) {
@@ -539,6 +560,8 @@ export class StoresService {
       userId: updatedMembership.userId,
       storeId: updatedMembership.storeId,
       role: updatedMembership.role,
+      position: updatedMembership.position,
+      skills: updatedMembership.skills || [],
       createdAt: updatedMembership.createdAt,
       updatedAt: updatedMembership.updatedAt,
       user: {

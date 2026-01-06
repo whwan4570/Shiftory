@@ -10,6 +10,10 @@ import { MonthsService } from './months.service';
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { UpdateShiftDto } from './dto/update-shift.dto';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import {
+  calculateAllShiftWarnings,
+  ShiftWarning,
+} from './shift-warnings.util';
 
 /**
  * ShiftsService handles shift CRUD operations
@@ -463,6 +467,47 @@ export class ShiftsService {
       },
     });
 
-    return shifts;
+    // Get store settings for warning calculations
+    const store = await this.prisma.store.findUnique({
+      where: { id: storeId },
+      select: {
+        weekStartsOn: true,
+        overtimeDailyEnabled: true,
+        overtimeDailyMinutes: true,
+        overtimeWeeklyEnabled: true,
+        overtimeWeeklyMinutes: true,
+      },
+    });
+
+    // Calculate warnings for all shifts
+    const weekStartsOn = store?.weekStartsOn ?? 1;
+    const warningsMap = calculateAllShiftWarnings(
+      shifts.map((s) => ({
+        id: s.id,
+        userId: s.userId,
+        date: s.date,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        breakMins: s.breakMins,
+      })),
+      weekStartsOn,
+      {
+        maxDailyHours: store?.overtimeDailyEnabled
+          ? (store.overtimeDailyMinutes ?? 480) / 60
+          : 8,
+        maxWeeklyHours: store?.overtimeWeeklyEnabled
+          ? (store.overtimeWeeklyMinutes ?? 2400) / 60
+          : 40,
+        breakRequiredAfterHours: 6,
+        minBreakMinutes: 30,
+        consecutiveHoursWarning: 10,
+      },
+    );
+
+    // Add warnings to shifts
+    return shifts.map((shift) => ({
+      ...shift,
+      warnings: warningsMap.get(shift.id) || [],
+    }));
   }
 }

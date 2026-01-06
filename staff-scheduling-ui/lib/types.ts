@@ -17,6 +17,14 @@ export interface Member {
   email: string
   role: UserRole
   status: "ACTIVE" | "INACTIVE"
+  position?: string | null
+  skills?: string[]
+}
+
+export interface ShiftWarning {
+  type: 'DAILY_HOURS' | 'WEEKLY_HOURS' | 'BREAK_REQUIRED' | 'CONSECUTIVE_HOURS'
+  message: string
+  severity: 'warning' | 'error'
 }
 
 export interface Shift {
@@ -38,4 +46,5 @@ export interface Shift {
     email: string
     name: string
   }
+  warnings?: ShiftWarning[]
 }

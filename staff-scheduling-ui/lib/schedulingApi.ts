@@ -142,6 +142,41 @@ export async function copyMonth(
 }
 
 /**
+ * Update a shift
+ * @param storeId - Store ID
+ * @param shiftId - Shift ID
+ * @param payload - Shift update data
+ * @returns Updated shift
+ */
+export async function updateShift(
+  storeId: string,
+  shiftId: string,
+  payload: {
+    userId?: string
+    date?: string
+    startTime?: string
+    endTime?: string
+    breakMins?: number
+  }
+) {
+  return apiRequest<Shift>(`/stores/${storeId}/shifts/${shiftId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+/**
+ * Delete a shift
+ * @param storeId - Store ID
+ * @param shiftId - Shift ID
+ */
+export async function deleteShift(storeId: string, shiftId: string) {
+  return apiRequest<{ ok: boolean }>(`/stores/${storeId}/shifts/${shiftId}`, {
+    method: 'DELETE',
+  })
+}
+
+/**
  * Shift type from API
  */
 export interface Shift {

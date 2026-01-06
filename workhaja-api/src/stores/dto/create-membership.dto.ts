@@ -12,6 +12,15 @@ export class CreateMembershipDto {
   role: Role;
 
   @IsOptional()
+  @IsString()
+  position?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  skills?: string[];
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   permissions?: string[]; // Manager permissions (only used when role is MANAGER)

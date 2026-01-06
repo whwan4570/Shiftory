@@ -184,6 +184,8 @@ model Membership {
   userId      String   @map("user_id")
   storeId     String   @map("store_id")
   role        Role
+  position    String?  // Free-text position/role label for this store
+  skills      String[] @default([]) // Skill tags for filtering/assignment
   permissions Json?    // Manager permissions: array of strings (only for MANAGER role)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

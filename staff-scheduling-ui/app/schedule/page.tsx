@@ -13,18 +13,24 @@ import { Topbar } from "@/components/topbar"
 import { ScheduleCalendar } from "@/components/schedule-calendar"
 import { ShiftCard } from "@/components/shift-card"
 import { AvailabilityEditor } from "@/components/availability-editor"
+import { StaffingHeatmap } from "@/components/staffing-heatmap"
+import { EmployeeFilters } from "@/components/employee-filters"
+import { EmployeeRecommendations } from "@/components/employee-recommendations"
+import { WeekTimeline } from "@/components/week-timeline"
 import { AddShiftModal } from "@/components/modals/add-shift-modal"
 import { CreateMonthModal } from "@/components/modals/create-month-modal"
 import { CopyMonthModal } from "@/components/modals/copy-month-modal"
 import { PublishConfirmationModal } from "@/components/modals/publish-confirmation-modal"
 import { CreateRequestModal } from "@/components/modals/create-request-modal"
+import { BulkAdjustModal } from "@/components/modals/bulk-adjust-modal"
 import { ChevronLeft, ChevronRight, Plus, AlertCircle, RefreshCw, Clock, Copy } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/hooks/useAuth"
-import { getShifts, publishMonth, getMonth, createMonth, copyMonth, type Shift, type ScheduleMonth } from "@/lib/schedulingApi"
+import { getShifts, publishMonth, getMonth, createMonth, copyMonth, deleteShift, type Shift, type ScheduleMonth } from "@/lib/schedulingApi"
 import { listAvailability } from "@/lib/availabilityApi"
 import type { Availability } from "@/types/availability"
-import { storesApi, authApi } from "@/lib/api"
+import { storesApi, authApi, membershipsApi } from "@/lib/api"
+import type { Member } from "@/lib/types"
 import {
   getMonthRange,
   getWeekRange,
@@ -130,6 +136,13 @@ export default function SchedulePage() {
   const [requestChangeModalOpen, setRequestChangeModalOpen] = useState(false)
   const [selectedShiftForRequest, setSelectedShiftForRequest] = useState<Shift | null>(null)
   const [myShiftsForSwap, setMyShiftsForSwap] = useState<Shift[]>([])
+  const [bulkAdjustModalOpen, setBulkAdjustModalOpen] = useState(false)
+  const [members, setMembers] = useState<Member[]>([])
+  const [selectedPosition, setSelectedPosition] = useState<string | null>(null)
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([])
+  const [showRecommendations, setShowRecommendations] = useState(false)
+  const [recommendationDate, setRecommendationDate] = useState<Date | null>(null)
+  const [recommendationTime, setRecommendationTime] = useState<{ start: string; end: string } | null>(null)
 
   // Redirect if no storeId
   useEffect(() => {
@@ -137,6 +150,68 @@ export default function SchedulePage() {
       router.replace("/stores")
     }
   }, [storeId, authLoading, router])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in input/textarea/select
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable
+      ) {
+        return
+      }
+
+      // Ctrl/Cmd + N or 'n' key: Open add shift modal
+      if ((e.ctrlKey || e.metaKey) && e.key === "n") {
+        e.preventDefault()
+        if (
+          (userRole === "OWNER" || userRole === "MANAGER") &&
+          contentTab === "SHIFTS" &&
+          monthStatus !== "PUBLISHED" &&
+          monthExists !== false
+        ) {
+          setShiftModalOpen(true)
+        }
+      } else if (e.key === "n" && !e.ctrlKey && !e.metaKey) {
+        // 'n' key alone: Open add shift modal
+        if (
+          (userRole === "OWNER" || userRole === "MANAGER") &&
+          contentTab === "SHIFTS" &&
+          monthStatus !== "PUBLISHED" &&
+          monthExists !== false
+        ) {
+          e.preventDefault()
+          setShiftModalOpen(true)
+        }
+      }
+
+      // Escape: Close modals
+      if (e.key === "Escape") {
+        if (shiftModalOpen) setShiftModalOpen(false)
+        if (createMonthModalOpen) setCreateMonthModalOpen(false)
+        if (copyMonthModalOpen) setCopyMonthModalOpen(false)
+        if (publishModalOpen) setPublishModalOpen(false)
+        if (requestChangeModalOpen) setRequestChangeModalOpen(false)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [
+    userRole,
+    contentTab,
+    monthStatus,
+    monthExists,
+    shiftModalOpen,
+    createMonthModalOpen,
+    copyMonthModalOpen,
+    publishModalOpen,
+    requestChangeModalOpen,
+  ])
 
   // Load user role and ID
   useEffect(() => {
@@ -164,8 +239,29 @@ export default function SchedulePage() {
     if (storeId && !authLoading) {
       loadShifts()
       loadAvailability()
+      loadMembers()
     }
   }, [storeId, viewYear, viewMonth, viewMode, anchorDate, weekStartsOn, authLoading])
+
+  // Load members
+  const loadMembers = async () => {
+    if (!storeId) return
+    try {
+      const data = await membershipsApi.getStoreMembers(storeId)
+      const formattedMembers: Member[] = data.map((membership) => ({
+        id: membership.user.id,
+        name: membership.user.name,
+        email: membership.user.email,
+        role: membership.role,
+        status: "ACTIVE" as const,
+        position: membership.position || undefined,
+        skills: membership.skills || [],
+      }))
+      setMembers(formattedMembers)
+    } catch (err) {
+      console.error("Failed to load members:", err)
+    }
+  }
 
   // Initialize selected date
   useEffect(() => {
@@ -397,6 +493,24 @@ export default function SchedulePage() {
     }
   }
 
+  const handleDeleteShift = async (shiftId: string) => {
+    if (!storeId) return
+    const confirmed = window.confirm("Delete this shift? This cannot be undone.")
+    if (!confirmed) return
+
+    try {
+      await deleteShift(storeId, shiftId)
+      // Optimistically remove from UI
+      setShifts((prev) => prev.filter((s) => s.id !== shiftId))
+      setMyShiftsForSwap((prev) => prev.filter((s) => s.id !== shiftId))
+      toast.success("Shift deleted")
+    } catch (err: any) {
+      console.error("Failed to delete shift:", err)
+      const errorMessage = err?.message || "Failed to delete shift"
+      toast.error(errorMessage)
+    }
+  }
+
   const handleAvailabilitySuccess = async () => {
     await loadAvailability()
   }
@@ -445,12 +559,36 @@ export default function SchedulePage() {
     }
   }
 
-  // Filter shifts
-  const filteredShifts = shifts && Array.isArray(shifts)
+  // Filter shifts by canceled status, position, and skills
+  let filteredShifts = shifts && Array.isArray(shifts)
     ? showCanceled
       ? shifts
       : shifts.filter((shift) => !shift.isCanceled)
     : []
+
+  // Apply position and skills filters
+  if (selectedPosition || selectedSkills.length > 0) {
+    filteredShifts = filteredShifts.filter((shift) => {
+      const member = members.find((m) => m.id === shift.userId)
+      if (!member) return true
+
+      // Position filter
+      if (selectedPosition && member.position !== selectedPosition) {
+        return false
+      }
+
+      // Skills filter
+      if (selectedSkills.length > 0) {
+        const memberSkills = member.skills || []
+        const hasAllSkills = selectedSkills.every((skill) =>
+          memberSkills.includes(skill)
+        )
+        if (!hasAllSkills) return false
+      }
+
+      return true
+    })
+  }
 
   // Group shifts by date
   const shiftsByDate = filteredShifts.length > 0 ? groupShiftsByDate(filteredShifts) : {}
@@ -529,6 +667,18 @@ export default function SchedulePage() {
                 {monthStatus === "unknown" && viewMode === "MONTH" && (
                   <Badge variant="outline">Status: unknown</Badge>
                 )}
+                {(userRole === "OWNER" || userRole === "MANAGER") &&
+                  contentTab === "SHIFTS" &&
+                  monthStatus !== "PUBLISHED" &&
+                  monthExists !== false && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setBulkAdjustModalOpen(true)}
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      Bulk Adjust
+                    </Button>
+                  )}
                 {viewMode === "MONTH" && (
                   <Button
                     onClick={() => setPublishModalOpen(true)}
@@ -670,8 +820,8 @@ export default function SchedulePage() {
           ) : (
             /* Three-column layout */
             <div className="grid gap-6 lg:grid-cols-12">
-              {/* Left: Mini calendar or week days */}
-              <div className="lg:col-span-3">
+              {/* Left: Mini calendar, heatmap, and filters */}
+              <div className="lg:col-span-3 space-y-4">
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">
@@ -728,22 +878,88 @@ export default function SchedulePage() {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Heatmap - only show in MONTH view */}
+                {viewMode === "MONTH" && (userRole === "OWNER" || userRole === "MANAGER") && (
+                  <StaffingHeatmap
+                    shifts={shifts}
+                    year={viewYear}
+                    month={viewMonth}
+                    selectedDate={selectedDate}
+                    onSelectDate={setSelectedDate}
+                  />
+                )}
+
+                {/* Filters */}
+                {contentTab === "SHIFTS" && (userRole === "OWNER" || userRole === "MANAGER") && (
+                  <EmployeeFilters
+                    members={members}
+                    selectedPosition={selectedPosition}
+                    selectedSkills={selectedSkills}
+                    availableSkills={Array.from(
+                      new Set(members.flatMap((m) => m.skills || []))
+                    ).sort()}
+                    onPositionChange={setSelectedPosition}
+                    onSkillsChange={setSelectedSkills}
+                  />
+                )}
               </div>
 
               {/* Middle: Shifts or Availability */}
               <div className="lg:col-span-5">
-                <Card>
-                  <CardHeader>
-                    <Tabs value={contentTab} onValueChange={(v) => setContentTab(v as ContentTab)}>
-                      <TabsList>
-                        <TabsTrigger value="SHIFTS">Shifts</TabsTrigger>
-                        <TabsTrigger value="AVAILABILITY">Availability</TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                  </CardHeader>
-                  <CardContent>
-                    <Tabs value={contentTab} onValueChange={(v) => setContentTab(v as ContentTab)}>
-                      <TabsContent value="SHIFTS" className="mt-4">
+                {viewMode === "WEEK" && contentTab === "SHIFTS" ? (
+                  <WeekTimeline
+                    days={weekRange?.days || []}
+                    shifts={filteredShifts}
+                    members={members}
+                    weekStartsOn={weekStartsOn}
+                    onShiftMove={async (shiftId, newDate, newStartTime, newEndTime) => {
+                      if (!storeId) return
+                      try {
+                        const { updateShift } = await import("@/lib/schedulingApi")
+                        await updateShift(storeId, shiftId, {
+                          date: formatYMD(newDate),
+                          startTime: newStartTime,
+                          endTime: newEndTime,
+                        })
+                        await loadShifts()
+                        toast.success("Shift moved successfully")
+                      } catch (err: any) {
+                        toast.error(err?.message || "Failed to move shift")
+                      }
+                    }}
+                    onShiftResize={async (shiftId, newStartTime, newEndTime) => {
+                      if (!storeId) return
+                      try {
+                        const { updateShift } = await import("@/lib/schedulingApi")
+                        await updateShift(storeId, shiftId, {
+                          startTime: newStartTime,
+                          endTime: newEndTime,
+                        })
+                        await loadShifts()
+                        toast.success("Shift resized successfully")
+                      } catch (err: any) {
+                        toast.error(err?.message || "Failed to resize shift")
+                      }
+                    }}
+                    onShiftClick={(shift) => {
+                      setSelectedDate(new Date(shift.date))
+                    }}
+                    canEdit={(userRole === "OWNER" || userRole === "MANAGER") && monthStatus !== "PUBLISHED"}
+                  />
+                ) : (
+                  <Card>
+                    <CardHeader>
+                      <Tabs value={contentTab} onValueChange={(v) => setContentTab(v as ContentTab)}>
+                        <TabsList>
+                          <TabsTrigger value="SHIFTS">Shifts</TabsTrigger>
+                          <TabsTrigger value="AVAILABILITY">Availability</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </CardHeader>
+                    <CardContent>
+                      <Tabs value={contentTab} onValueChange={(v) => setContentTab(v as ContentTab)}>
+                        <TabsContent value="SHIFTS" className="mt-4">
                         <div className="space-y-2">
                           {shiftsForSelectedDate.length > 0 ? (
                             shiftsForSelectedDate.map((shift) => {
@@ -765,6 +981,7 @@ export default function SchedulePage() {
                                       status: shift.status,
                                     }}
                                     onSelect={() => {}}
+                                    onDelete={userRole === "OWNER" || userRole === "MANAGER" ? handleDeleteShift : undefined}
                                   />
                                   {canRequestChange && (
                                     <Button
@@ -860,8 +1077,29 @@ export default function SchedulePage() {
                 </Card>
               </div>
 
-              {/* Right: Shift details placeholder */}
-              <div className="lg:col-span-4">
+              {/* Right: Recommendations or Details */}
+              <div className="lg:col-span-4 space-y-4">
+                {contentTab === "SHIFTS" &&
+                  (userRole === "OWNER" || userRole === "MANAGER") &&
+                  selectedDate &&
+                  showRecommendations &&
+                  recommendationTime && (
+                    <EmployeeRecommendations
+                      members={members}
+                      availabilities={availabilityList}
+                      date={selectedDate}
+                      startTime={recommendationTime.start}
+                      endTime={recommendationTime.end}
+                      requiredPosition={selectedPosition}
+                      requiredSkills={selectedSkills}
+                      onSelect={(member) => {
+                        // Set the selected member and open add shift modal
+                        setShiftModalOpen(true)
+                        // Note: This would need to be passed to the modal to pre-select the employee
+                        toast.info(`Selected ${member.name}. Use the shift modal to complete.`)
+                      }}
+                    />
+                  )}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">Details</CardTitle>
@@ -870,9 +1108,27 @@ export default function SchedulePage() {
                     <div className="rounded-lg border border-dashed p-12 text-center">
                       <p className="text-sm text-muted-foreground">
                         {contentTab === "SHIFTS"
-                          ? "Select a shift to view details"
+                          ? selectedDate
+                            ? "Select a shift to view details or add a new shift to see recommendations"
+                            : "Select a date to view shifts"
                           : "Availability information"}
                       </p>
+                      {contentTab === "SHIFTS" &&
+                        selectedDate &&
+                        (userRole === "OWNER" || userRole === "MANAGER") &&
+                        !showRecommendations && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-4"
+                            onClick={() => {
+                              setShowRecommendations(true)
+                              setRecommendationTime({ start: "09:00", end: "17:00" })
+                            }}
+                          >
+                            Get Recommendations
+                          </Button>
+                        )}
                     </div>
                   </CardContent>
                 </Card>
@@ -919,6 +1175,16 @@ export default function SchedulePage() {
         open={publishModalOpen}
         onOpenChange={setPublishModalOpen}
         onConfirm={handlePublish}
+      />
+      <BulkAdjustModal
+        open={bulkAdjustModalOpen}
+        onOpenChange={setBulkAdjustModalOpen}
+        storeId={storeId!}
+        year={viewYear}
+        month={viewMonth}
+        shifts={shifts}
+        onSuccess={loadShifts}
+        isPublished={monthStatus === "PUBLISHED"}
       />
       {selectedShiftForRequest && (
         <CreateRequestModal

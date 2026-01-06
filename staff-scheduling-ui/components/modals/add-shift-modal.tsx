@@ -77,6 +77,52 @@ export function AddShiftModal({
     }
   }, [open, defaultDate])
 
+  // Keyboard navigation
+  useEffect(() => {
+    if (!open) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if modal is open
+      if (step === "selectEmployee") {
+        // Arrow keys to navigate employee list
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault()
+          const employeeButtons = document.querySelectorAll(
+            '[data-employee-button]'
+          ) as NodeListOf<HTMLButtonElement>
+          if (employeeButtons.length === 0) return
+
+          const currentIndex = Array.from(employeeButtons).findIndex(
+            (btn) => btn === document.activeElement
+          )
+          let nextIndex = 0
+
+          if (e.key === "ArrowDown") {
+            nextIndex =
+              currentIndex < employeeButtons.length - 1
+                ? currentIndex + 1
+                : 0
+          } else {
+            nextIndex =
+              currentIndex > 0 ? currentIndex - 1 : employeeButtons.length - 1
+          }
+
+          employeeButtons[nextIndex]?.focus()
+        }
+      } else if (step === "setTime") {
+        // Quick shortcuts in time step
+        // Ctrl/Cmd + Enter: Submit
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+          e.preventDefault()
+          handleSubmit(e as any)
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [open, step])
+
   const handleEmployeeSelect = (member: Member) => {
     setUserId(member.id)
     setSelectedMember(member)
@@ -234,13 +280,15 @@ export function AddShiftModal({
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto">
-                    {members.map((member) => (
+                    {members.map((member, index) => (
                       <button
                         key={member.id}
+                        data-employee-button
                         type="button"
                         onClick={() => handleEmployeeSelect(member)}
                         disabled={isPublished}
-                        className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent hover:border-primary transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                        autoFocus={index === 0}
+                        className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent hover:border-primary transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-primary focus:outline-none"
                       >
                         <div>
                           <p className="font-medium">{member.name}</p>

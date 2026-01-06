@@ -88,6 +88,17 @@ export function timeToMinutes(timeStr: string): number {
 }
 
 /**
+ * Convert minutes since midnight to time string (HH:mm)
+ * @param minutes - Minutes since midnight
+ * @returns Time string in HH:mm format
+ */
+export function minutesToTime(minutes: number): string {
+  const hours = Math.floor(minutes / 60) % 24
+  const mins = minutes % 60
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+}
+
+/**
  * Compare two time strings (HH:mm)
  * @param time1 - First time string
  * @param time2 - Second time string

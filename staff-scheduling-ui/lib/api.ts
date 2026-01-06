@@ -306,6 +306,8 @@ export const membershipsApi = {
         userId: string
         storeId: string
         role: 'OWNER' | 'MANAGER' | 'WORKER'
+        position?: string | null
+        skills?: string[]
         createdAt: string
         updatedAt: string
         user: {

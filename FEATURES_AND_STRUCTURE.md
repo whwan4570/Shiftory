@@ -23,6 +23,8 @@
   - 멤버 초대 (이메일, 역할, 권한)
   - 멤버 목록 조회
   - 멤버 역할 변경
+  - **Position 필드 추가** (자유 입력, 직원의 포지션/역할)
+  - **Skills 필드 추가** (문자열 배열, 직원의 스킬 태그)
 
 ### 3. 권한 관리 (Permissions)
 - ✅ 역할 기반 접근 제어 (RBAC)
@@ -53,6 +55,37 @@
   - 날짜별 가용성 설정
 - ✅ 이전 월 스케줄 복사 기능
 - ✅ 월별/주별 뷰 모드
+- ✅ **스케줄 경고 시스템**
+  - 하루 최대 근무 시간 경고 (기본 8시간)
+  - 주 최대 근무 시간 경고 (기본 40시간)
+  - 휴게 시간 필수 경고 (6시간 이상 시 최소 30분)
+  - 연속 근무 경고 (10시간 이상)
+  - Shift 카드에 경고 아이콘 및 메시지 표시
+- ✅ **키보드 빠른 추가**
+  - `N` 키 또는 `Ctrl/Cmd + N`: Shift 추가 모달 열기
+  - 키보드만으로 직원 선택 및 시간 설정 가능
+  - `Arrow Up/Down`: 직원 목록 탐색
+  - `Ctrl/Cmd + Enter`: 제출
+- ✅ **일괄 시간 조정**
+  - 날짜 범위 선택
+  - 모든 Shift를 N분씩 일괄 조정 (앞당기기/늦추기)
+- ✅ **히트맵 시각화**
+  - 날짜별 근무 인원 수를 색상으로 표시
+  - 과소근무(amber), 적정(green), 과다근무(red)
+  - MONTH 뷰에서 표시 (OWNER/MANAGER만)
+- ✅ **역할/스킬 필터**
+  - Position 필터 (자유 입력 또는 기존 포지션 선택)
+  - Skills 필터 (멀티 선택)
+  - 필터 적용 시 Shift 목록 실시간 업데이트
+- ✅ **직원 추천 시스템**
+  - 가용 시간 기반 점수 계산
+  - Position/Skills 매칭 점수
+  - 상위 5명 추천 및 추천 이유 표시
+- ✅ **WEEK 뷰 드래그&드롭**
+  - 타임라인 형태로 Shift 표시
+  - Shift 드래그하여 다른 날짜/시간으로 이동
+  - Shift 상단/하단 드래그하여 시작/종료 시간 조정
+  - 드래그 중 시각적 피드백 제공
 
 ### 5. 변경 요청 (Change Requests)
 - ✅ 변경 요청 생성
@@ -225,6 +258,7 @@ workhaja-api/
 │   │   ├── months.service.ts
 │   │   ├── shifts.controller.ts
 │   │   ├── shifts.service.ts
+│   │   ├── shift-warnings.util.ts  # 스케줄 경고 계산 유틸
 │   │   ├── availability.controller.ts
 │   │   └── availability.service.ts
 │   │
@@ -404,12 +438,20 @@ staff-scheduling-ui/
 │   ├── sidebar.tsx        # 사이드바 네비게이션
 │   ├── topbar.tsx         # 상단 바
 │   ├── time-summary-card.tsx  # 시간 요약 카드
+│   ├── shift-card.tsx     # Shift 카드 (경고 표시 포함)
+│   ├── schedule-calendar.tsx  # 스케줄 캘린더
+│   ├── staffing-heatmap.tsx   # 근무 인원 히트맵
+│   ├── employee-filters.tsx   # 직원 필터 (Position/Skills)
+│   ├── employee-recommendations.tsx  # 직원 추천
+│   ├── week-timeline.tsx  # WEEK 뷰 타임라인 (드래그&드롭)
 │   ├── modals/            # 모달 컴포넌트
 │   │   ├── create-store-modal.tsx
 │   │   ├── edit-store-modal.tsx
 │   │   ├── invite-member-modal.tsx
 │   │   ├── create-month-modal.tsx
-│   │   └── copy-month-modal.tsx
+│   │   ├── copy-month-modal.tsx
+│   │   ├── add-shift-modal.tsx  # Shift 추가 (키보드 네비게이션)
+│   │   └── bulk-adjust-modal.tsx  # 일괄 시간 조정
 │   └── documents/         # 문서 관련 컴포넌트
 │
 ├── lib/                   # 유틸리티 및 API 클라이언트
@@ -469,7 +511,7 @@ staff-scheduling-ui/
 
 1. **User** - 사용자
 2. **Store** - 매장
-3. **Membership** - Store 멤버십 (역할, 권한)
+3. **Membership** - Store 멤버십 (역할, 권한, position, skills)
 4. **ScheduleMonth** - 월별 스케줄
 5. **Shift** - 근무 시간
 6. **Availability** - 가용성
