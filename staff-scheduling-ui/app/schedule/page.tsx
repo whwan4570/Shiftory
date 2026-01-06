@@ -1075,6 +1075,7 @@ export default function SchedulePage() {
                     </Tabs>
                   </CardContent>
                 </Card>
+                )}
               </div>
 
               {/* Right: Recommendations or Details */}
