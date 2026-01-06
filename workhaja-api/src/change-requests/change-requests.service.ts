@@ -233,6 +233,39 @@ export class ChangeRequestsService {
           },
         );
       }
+
+      // For SWAP requests, also notify the swap shift owner
+      if (createDto.type === ChangeRequestType.SHIFT_SWAP_REQUEST && createDto.swapShiftId) {
+        const swapShift = await this.prisma.shift.findUnique({
+          where: { id: createDto.swapShiftId },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+              },
+            },
+          },
+        });
+
+        if (swapShift && swapShift.userId !== userId) {
+          await this.notificationsService.enqueueInAppNotification({
+            storeId,
+            userId: swapShift.userId,
+            type: 'CHANGE_REQUEST_CREATED',
+            title: 'Swap Request',
+            message: `${changeRequest.createdBy.name} wants to swap shifts with you. Please review and approve if you agree.`,
+            data: {
+              requestId: changeRequest.id,
+              shiftId: changeRequest.shiftId,
+              swapShiftId: createDto.swapShiftId,
+              type: changeRequest.type,
+              createdById: userId,
+            },
+          });
+        }
+      }
     } catch (error) {
       // Don't fail request creation if notification fails
       console.error('Failed to send notification:', error);
@@ -598,6 +631,52 @@ export class ChangeRequestsService {
       if (!candidate) {
         throw new BadRequestException(
           'chosenUserId must be a candidate for this cover request',
+        );
+      }
+    }
+
+    // For SWAP requests, verify both employees have agreed (via candidates)
+    if (request.type === ChangeRequestType.SHIFT_SWAP_REQUEST) {
+      if (!request.swapShiftId) {
+        throw new BadRequestException('swapShiftId is required for SWAP_REQUEST');
+      }
+
+      const swapShift = await this.prisma.shift.findUnique({
+        where: { id: request.swapShiftId },
+      });
+
+      if (!swapShift) {
+        throw new NotFoundException('Swap shift not found');
+      }
+
+      // Check if both employees have agreed to the swap
+      // The swap shift owner should have volunteered as a candidate
+      const swapShiftOwnerCandidate = await this.prisma.changeRequestCandidate.findUnique({
+        where: {
+          requestId_userId: {
+            requestId,
+            userId: swapShift.userId,
+          },
+        },
+      });
+
+      // Also check if the original shift owner has agreed (they created the request, so they implicitly agree)
+      // But we can also check if they've explicitly volunteered
+      const originalShiftOwnerCandidate = await this.prisma.changeRequestCandidate.findUnique({
+        where: {
+          requestId_userId: {
+            requestId,
+            userId: request.shift.userId,
+          },
+        },
+      });
+
+      // For swap to proceed, the swap shift owner must have volunteered
+      // The original shift owner created the request, so they implicitly agree
+      // But we'll require explicit agreement from the swap shift owner
+      if (!swapShiftOwnerCandidate) {
+        throw new BadRequestException(
+          'Both employees must agree to the swap. The swap shift owner has not yet agreed.',
         );
       }
     }

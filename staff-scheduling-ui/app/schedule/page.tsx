@@ -933,6 +933,7 @@ export default function SchedulePage() {
             breakMins: selectedShiftForRequest.breakMins,
           }}
           myShifts={myShiftsForSwap}
+          allShifts={shifts.filter((s) => s.id !== selectedShiftForRequest.id)}
           onSuccess={() => {
             toast.success("Change request submitted. You can view it in the Requests page.")
             loadShifts() // Refresh to see any updates

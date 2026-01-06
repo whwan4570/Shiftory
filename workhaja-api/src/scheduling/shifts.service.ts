@@ -411,16 +411,8 @@ export class ShiftsService {
       );
     }
 
-    // Workers can only view their own shifts
-    if (membership.role === 'WORKER') {
-      if (filterUserId && filterUserId !== userId) {
-        throw new ForbiddenException(
-          'Workers can only view their own shifts',
-        );
-      }
-      // Force filterUserId to be the worker's own ID
-      filterUserId = userId;
-    }
+    // All members (including WORKERs) can view all shifts in the store
+    // filterUserId is optional and can be used to filter by specific user
 
     // Parse dates
     const fromDate = new Date(from);

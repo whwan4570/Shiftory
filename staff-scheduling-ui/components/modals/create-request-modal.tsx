@@ -33,7 +33,8 @@ interface CreateRequestModalProps {
     endTime: string
     breakMins: number
   }
-  myShifts?: Shift[] // For SWAP request - other shifts in the same month
+  myShifts?: Shift[] // For SWAP request - other shifts in the same month (deprecated, use allShifts)
+  allShifts?: Shift[] // For SWAP request - all shifts in the same month from all employees
   onSuccess: () => void
 }
 
@@ -43,6 +44,7 @@ export function CreateRequestModal({
   storeId,
   shift,
   myShifts = [],
+  allShifts = [],
   onSuccess,
 }: CreateRequestModalProps) {
   const [requestType, setRequestType] = useState<ChangeRequestType>("SHIFT_TIME_CHANGE")
@@ -287,11 +289,11 @@ export function CreateRequestModal({
                     disabled={isLoading}
                   />
                 </div>
-                {myShifts.length > 0 && (
+                {(allShifts.length > 0 || myShifts.length > 0) && (
                   <div className="space-y-2">
-                    <Label>My Other Shifts This Month</Label>
-                    <div className="space-y-2 max-h-40 overflow-y-auto border rounded p-2">
-                      {myShifts
+                    <Label>Available Shifts to Swap</Label>
+                    <div className="space-y-2 max-h-60 overflow-y-auto border rounded p-2">
+                      {(allShifts.length > 0 ? allShifts : myShifts)
                         .filter((s) => s.id !== shift.id)
                         .map((s) => (
                           <button
@@ -306,10 +308,15 @@ export function CreateRequestModal({
                             <div className="font-medium">
                               {new Date(s.date).toLocaleDateString()} - {s.startTime} to {s.endTime}
                             </div>
-                            <div className="text-xs text-muted-foreground">ID: {s.id}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {s.user?.name || "Unknown"} • ID: {s.id}
+                            </div>
                           </button>
                         ))}
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Select a shift to swap with. Both employees and manager/owner approval will be required.
+                    </p>
                   </div>
                 )}
               </TabsContent>
