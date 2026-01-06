@@ -386,14 +386,14 @@ export default function SchedulePage() {
   }
 
   const handleCreateShift = async () => {
-    setIsCreating(true)
     try {
+      // Reload shifts to show the newly created shift
       await loadShifts()
       toast.success("Shift created successfully")
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to refresh shifts:", err)
-    } finally {
-      setIsCreating(false)
+      const errorMessage = err?.message || "Failed to refresh shifts"
+      toast.error(errorMessage)
     }
   }
 
@@ -684,14 +684,7 @@ export default function SchedulePage() {
                         year={viewYear}
                         month={viewMonth}
                         selectedDate={selectedDate || new Date()}
-                        onSelectDate={(date) => {
-                          setSelectedDate(date)
-                          // If user is OWNER or MANAGER, open quick add modal
-                          if ((userRole === "OWNER" || userRole === "MANAGER") && contentTab === "SHIFTS") {
-                            setQuickAddDate(date)
-                            setShiftModalOpen(true)
-                          }
-                        }}
+                        onSelectDate={setSelectedDate}
                         availabilityByDate={availabilityByDate}
                         userId={userId}
                       />
@@ -708,14 +701,7 @@ export default function SchedulePage() {
                           return (
                             <button
                               key={dayKey}
-                              onClick={() => {
-                                setSelectedDate(day)
-                                // If user is OWNER or MANAGER, open quick add modal
-                                if ((userRole === "OWNER" || userRole === "MANAGER") && contentTab === "SHIFTS") {
-                                  setQuickAddDate(day)
-                                  setShiftModalOpen(true)
-                                }
-                              }}
+                              onClick={() => setSelectedDate(day)}
                               className={`w-full text-left p-2 rounded border ${
                                 isSelected
                                   ? "bg-primary text-primary-foreground"

@@ -19,6 +19,7 @@ import { AlertCircle } from "lucide-react"
 import { formatYMD, extractYMD, compareTimes } from "@/lib/date"
 import { membershipsApi } from "@/lib/api"
 import type { Member } from "@/lib/types"
+import { toast } from "sonner"
 
 interface AddShiftModalProps {
   open: boolean
@@ -153,14 +154,25 @@ export function AddShiftModal({
       setError("")
       setStep("selectEmployee")
 
+      toast.success("Shift created successfully")
       onSuccess?.()
       onOpenChange(false)
     } catch (err: any) {
       const errorMessage = err?.message || "Failed to create shift"
+      console.error("Failed to create shift:", err)
+      
       if (errorMessage.includes("403") || errorMessage.includes("published")) {
         setError("Month is published. Changes require approval.")
+        toast.error("Month is published. Changes require approval.")
+      } else if (errorMessage.includes("404") || errorMessage.includes("not found")) {
+        setError("Schedule month not found. Please create the month first.")
+        toast.error("Schedule month not found. Please create the month first.")
+      } else if (errorMessage.includes("400") || errorMessage.includes("Bad Request")) {
+        setError(errorMessage)
+        toast.error(errorMessage)
       } else {
         setError(errorMessage)
+        toast.error(errorMessage)
       }
     } finally {
       setIsLoading(false)
