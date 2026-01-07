@@ -575,21 +575,36 @@ export default function SchedulePage() {
   // Apply position and skills filters
   if (selectedPosition || selectedSkills.length > 0) {
     filteredShifts = filteredShifts.filter((shift) => {
-      const member = members.find((m) => m.id === shift.userId)
-      if (!member) return true
-
-      // Position filter
-      if (selectedPosition && member.position !== selectedPosition) {
+      // Get user ID from shift (try userId first, then user?.id)
+      const shiftUserId = shift.userId || shift.user?.id
+      if (!shiftUserId) {
+        // If no user ID, exclude from filtered results when filters are active
         return false
       }
 
-      // Skills filter
+      const member = members.find((m) => m.id === shiftUserId)
+      if (!member) {
+        // If member not found, exclude from filtered results when filters are active
+        return false
+      }
+
+      // Position filter (exact match, case-sensitive)
+      if (selectedPosition) {
+        const memberPosition = member.position || null
+        if (memberPosition !== selectedPosition) {
+          return false
+        }
+      }
+
+      // Skills filter (must have all selected skills)
       if (selectedSkills.length > 0) {
         const memberSkills = member.skills || []
         const hasAllSkills = selectedSkills.every((skill) =>
           memberSkills.includes(skill)
         )
-        if (!hasAllSkills) return false
+        if (!hasAllSkills) {
+          return false
+        }
       }
 
       return true
