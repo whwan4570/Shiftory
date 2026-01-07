@@ -907,7 +907,7 @@ export default function SchedulePage() {
 
               {/* Middle: Shifts or Availability */}
               <div className="lg:col-span-5">
-                {viewMode === "WEEK" && contentTab === "SHIFTS" ? (
+                {(viewMode === "WEEK" && contentTab === "SHIFTS") ? (
                   <WeekTimeline
                     days={weekRange?.days || []}
                     shifts={filteredShifts}
@@ -1060,11 +1060,11 @@ export default function SchedulePage() {
                                       <p className="text-sm font-medium">
                                         {avail.user?.name || "Unknown"}
                                       </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {avail.startTime && avail.endTime
-                                          ? `${avail.startTime} - ${avail.endTime}`
-                                          : "All day"}
-                                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {avail.startTime && avail.endTime
+                          ? avail.startTime + " - " + avail.endTime
+                          : "All day"}
+                      </p>
                                     </div>
                                   </div>
                                 ))}
