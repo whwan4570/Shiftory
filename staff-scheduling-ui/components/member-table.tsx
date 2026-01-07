@@ -13,9 +13,10 @@ interface MemberTableProps {
   members: Member[]
   onChangeRole?: (memberId: string, newRole: "OWNER" | "MANAGER" | "WORKER") => void
   onRemove?: (memberId: string) => void
+  onEdit?: (member: Member) => void
 }
 
-export function MemberTable({ members, onChangeRole, onRemove }: MemberTableProps) {
+export function MemberTable({ members, onChangeRole, onRemove, onEdit }: MemberTableProps) {
   if (members.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-12 text-center">
@@ -32,6 +33,8 @@ export function MemberTable({ members, onChangeRole, onRemove }: MemberTableProp
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Position</TableHead>
+            <TableHead>Skills</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
@@ -69,6 +72,31 @@ export function MemberTable({ members, onChangeRole, onRemove }: MemberTableProp
                 )}
               </TableCell>
               <TableCell>
+                {member.position ? (
+                  <Badge variant="outline">{member.position}</Badge>
+                ) : (
+                  <span className="text-xs text-muted-foreground">-</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {member.skills && member.skills.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {member.skills.slice(0, 2).map((skill, idx) => (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                    {member.skills.length > 2 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{member.skills.length - 2}
+                      </Badge>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">-</span>
+                )}
+              </TableCell>
+              <TableCell>
                 <Badge variant={member.status === "ACTIVE" ? "default" : "secondary"}>{member.status}</Badge>
               </TableCell>
               <TableCell>
@@ -79,6 +107,11 @@ export function MemberTable({ members, onChangeRole, onRemove }: MemberTableProp
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    {onEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(member)}>
+                        Edit Position/Skills
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => onRemove?.(member.id)} className="text-destructive">
                       Remove
                     </DropdownMenuItem>

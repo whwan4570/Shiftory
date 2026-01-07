@@ -40,24 +40,42 @@ const MANAGER_PERMISSIONS: { key: ManagerPermission; label: string; description:
 interface InviteMemberModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit?: (data: { email: string; role: UserRole; permissions?: ManagerPermission[] }) => void
+  onSubmit?: (data: { 
+    email: string
+    role: UserRole
+    permissions?: ManagerPermission[]
+    position?: string
+    skills?: string[]
+  }) => void
 }
 
 export function InviteMemberModal({ open, onOpenChange, onSubmit }: InviteMemberModalProps) {
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<UserRole>("WORKER")
   const [permissions, setPermissions] = useState<ManagerPermission[]>([])
+  const [position, setPosition] = useState("")
+  const [skillsInput, setSkillsInput] = useState("")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    // Parse skills from comma-separated string
+    const skills = skillsInput
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+    
     onSubmit?.({ 
       email, 
       role,
-      permissions: role === "MANAGER" ? permissions : undefined
+      permissions: role === "MANAGER" ? permissions : undefined,
+      position: position || undefined,
+      skills: skills.length > 0 ? skills : undefined,
     })
     setEmail("")
     setRole("WORKER")
     setPermissions([])
+    setPosition("")
+    setSkillsInput("")
     onOpenChange(false)
   }
 
@@ -147,6 +165,34 @@ export function InviteMemberModal({ open, onOpenChange, onSubmit }: InviteMember
                 )}
               </div>
             )}
+
+            <div className="space-y-2">
+              <Label htmlFor="position">Position (Optional)</Label>
+              <Input
+                id="position"
+                type="text"
+                placeholder="e.g., Barista, Kitchen Staff, Cashier"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the member's position or role in this store.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="skills">Skills (Optional)</Label>
+              <Input
+                id="skills"
+                type="text"
+                placeholder="e.g., Coffee Making, Food Prep, Customer Service"
+                value={skillsInput}
+                onChange={(e) => setSkillsInput(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter skills separated by commas (e.g., "Coffee Making, Food Prep").
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

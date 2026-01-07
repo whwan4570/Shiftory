@@ -322,7 +322,7 @@ export const membershipsApi = {
   /**
    * Add a member to a store
    */
-  async createMembership(storeId: string, data: { email: string; role: 'OWNER' | 'MANAGER' | 'WORKER'; permissions?: string[] }) {
+  async createMembership(storeId: string, data: { email: string; role: 'OWNER' | 'MANAGER' | 'WORKER'; permissions?: string[]; position?: string; skills?: string[] }) {
     return apiRequest<{
       id: string
       userId: string
@@ -344,7 +344,7 @@ export const membershipsApi = {
   /**
    * Update a membership (change role)
    */
-  async updateMembership(storeId: string, membershipId: string, data: { role?: 'OWNER' | 'MANAGER' | 'WORKER'; permissions?: string[] }) {
+  async updateMembership(storeId: string, membershipId: string, data: { role?: 'OWNER' | 'MANAGER' | 'WORKER'; permissions?: string[]; position?: string; skills?: string[] }) {
     return apiRequest<{
       id: string
       userId: string

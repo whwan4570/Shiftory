@@ -11,6 +11,7 @@ import { MemberTable } from "@/components/member-table"
 import { CreateStoreModal } from "@/components/modals/create-store-modal"
 import { EditStoreModal } from "@/components/modals/edit-store-modal"
 import { InviteMemberModal } from "@/components/modals/invite-member-modal"
+import { EditMemberModal } from "@/components/modals/edit-member-modal"
 import { Sidebar } from "@/components/sidebar"
 import { Topbar } from "@/components/topbar"
 import { Plus, Pencil, Trash2 } from "lucide-react"
@@ -29,6 +30,8 @@ export default function StoresPage() {
   const [createStoreOpen, setCreateStoreOpen] = useState(false)
   const [editStoreOpen, setEditStoreOpen] = useState(false)
   const [inviteMemberOpen, setInviteMemberOpen] = useState(false)
+  const [editMemberOpen, setEditMemberOpen] = useState(false)
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -81,6 +84,8 @@ export default function StoresPage() {
         email: membership.user.email,
         role: membership.role,
         status: "ACTIVE" as const,
+        position: membership.position || undefined,
+        skills: membership.skills || [],
       }))
       setMembers(formattedMembers)
     } catch (err) {
@@ -116,7 +121,7 @@ export default function StoresPage() {
     }
   }
 
-  const handleInviteMember = async (data: { email: string; role: "OWNER" | "MANAGER" | "WORKER"; permissions?: string[] }) => {
+  const handleInviteMember = async (data: { email: string; role: "OWNER" | "MANAGER" | "WORKER"; permissions?: string[]; position?: string; skills?: string[] }) => {
     if (!selectedStoreId) return
     try {
       await membershipsApi.createMembership(selectedStoreId, data)
@@ -134,6 +139,25 @@ export default function StoresPage() {
       await loadMembers(selectedStoreId)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to change role")
+    }
+  }
+
+  const handleEditMember = (member: Member) => {
+    setSelectedMember(member)
+    setEditMemberOpen(true)
+  }
+
+  const handleUpdateMember = async (data: { position?: string; skills?: string[] }) => {
+    if (!selectedStoreId || !selectedMember) return
+    try {
+      await membershipsApi.updateMembership(selectedStoreId, selectedMember.id, data)
+      await loadMembers(selectedStoreId)
+      setEditMemberOpen(false)
+      setSelectedMember(null)
+      toast.success("Member updated successfully")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update member")
+      toast.error(err instanceof Error ? err.message : "Failed to update member")
     }
   }
 
@@ -279,6 +303,7 @@ export default function StoresPage() {
                           members={members} 
                           onChangeRole={handleChangeRole}
                           onRemove={handleRemoveMember}
+                          onEdit={handleEditMember}
                         />
                       </TabsContent>
                       <TabsContent value="rules">
@@ -315,6 +340,12 @@ export default function StoresPage() {
         onSubmit={handleUpdateStore}
       />
       <InviteMemberModal open={inviteMemberOpen} onOpenChange={setInviteMemberOpen} onSubmit={handleInviteMember} />
+      <EditMemberModal
+        open={editMemberOpen}
+        onOpenChange={setEditMemberOpen}
+        member={selectedMember}
+        onSubmit={handleUpdateMember}
+      />
     </div>
   )
 }
