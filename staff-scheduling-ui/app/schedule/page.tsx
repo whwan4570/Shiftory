@@ -69,7 +69,11 @@ function groupShiftsByDate(shifts: Shift[]): Record<string, Shift[]> {
     return grouped
   }
   for (const shift of shifts) {
-    const dateKey = extractYMD(shift.date)
+    // Handle both string and Date object
+    const shiftDate = typeof shift.date === 'string' 
+      ? (shift.date.includes('T') ? new Date(shift.date) : new Date(shift.date + 'T00:00:00'))
+      : new Date(shift.date)
+    const dateKey = formatYMD(shiftDate)
     if (!grouped[dateKey]) {
       grouped[dateKey] = []
     }
@@ -483,9 +487,11 @@ export default function SchedulePage() {
 
   const handleCreateShift = async () => {
     try {
-      // Reload shifts to show the newly created shift
-      await loadShifts()
-      toast.success("Shift created successfully")
+      // Small delay to ensure API has processed the new shift
+      await new Promise(resolve => setTimeout(resolve, 300))
+      // Reload shifts and members to show the newly created shift
+      await Promise.all([loadShifts(), loadMembers()])
+      // Note: toast is already shown in AddShiftModal, so we don't need to show it again
     } catch (err: any) {
       console.error("Failed to refresh shifts:", err)
       const errorMessage = err?.message || "Failed to refresh shifts"
