@@ -77,6 +77,7 @@
   - Position 필터 (자유 입력 또는 기존 포지션 선택)
   - Skills 필터 (멀티 선택)
   - 필터 적용 시 Shift 목록 실시간 업데이트
+  - shift.userId와 shift.user?.id 모두 지원 (필터링 로직 개선)
 - ✅ **직원 추천 시스템**
   - 가용 시간 기반 점수 계산
   - Position/Skills 매칭 점수
@@ -175,6 +176,8 @@
 - ✅ 직원별 초과 근무 시간 (매니저/오너)
 - ✅ 유급/무급 휴게 시간 반영
 - ✅ CSV 내보내기
+- ✅ Break Total NaN 문제 수정 (formatMinutes 함수 개선, "0m"으로 표시)
+- ✅ 주간/월간 탭 지원 (My Weekly, My Monthly, Staff Monthly)
 
 ### 11. 시간 요약 (Time Summary)
 - ✅ 오늘의 근무 시간
@@ -198,6 +201,22 @@
   - 시간 창 설정 (체크인/체크아웃)
   - No-shift 체크인 동작
   - 오프라인/권한 거부 동작
+
+### 12-1. Store 설정 (Stores 페이지)
+- ✅ Labor Rules 설정 탭 (오너만)
+  - Overtime Rules (일일/주간 초과 근무 추적 설정)
+  - Break Rules (휴게 시간 유급 여부)
+  - Schedule Settings (주 시작일, 가용성 마감일)
+  - Check-in Policy (QR/GPS 체크인 설정, 시간 윈도우 등)
+  - 실시간 UI로 모든 설정 관리
+- ✅ Integrations 설정 탭
+  - 통합 서비스 목록 표시 (Google Calendar, Payroll, API Access, Webhooks)
+  - API 문서 및 Base URL 정보
+  - 향후 통합 기능 "Coming Soon" 표시
+- ✅ 멤버 관리 개선
+  - Position 필드 편집 (자유 입력)
+  - Skills 필드 편집 (쉼표로 구분된 스킬 목록)
+  - 멤버 초대 시 Position/Skills 설정 가능
 
 ---
 
@@ -397,7 +416,7 @@ staff-scheduling-ui/
 │   │   └── join/          # Store 가입
 │   │
 │   ├── stores/            # Store 관리
-│   │   └── page.tsx
+│   │   └── page.tsx       # Store 설정 (Labor Rules, Integrations 탭 포함)
 │   │
 │   ├── schedule/          # 스케줄
 │   │   └── page.tsx
@@ -444,10 +463,13 @@ staff-scheduling-ui/
 │   ├── employee-filters.tsx   # 직원 필터 (Position/Skills)
 │   ├── employee-recommendations.tsx  # 직원 추천
 │   ├── week-timeline.tsx  # WEEK 뷰 타임라인 (드래그&드롭)
+│   ├── labor-rules-config.tsx  # Labor Rules 설정 UI
+│   ├── integrations-config.tsx  # Integrations 설정 UI
 │   ├── modals/            # 모달 컴포넌트
 │   │   ├── create-store-modal.tsx
 │   │   ├── edit-store-modal.tsx
-│   │   ├── invite-member-modal.tsx
+│   │   ├── invite-member-modal.tsx  # Position/Skills 필드 포함
+│   │   ├── edit-member-modal.tsx    # Position/Skills 편집
 │   │   ├── create-month-modal.tsx
 │   │   ├── copy-month-modal.tsx
 │   │   ├── add-shift-modal.tsx  # Shift 추가 (키보드 네비게이션)
@@ -455,13 +477,13 @@ staff-scheduling-ui/
 │   └── documents/         # 문서 관련 컴포넌트
 │
 ├── lib/                   # 유틸리티 및 API 클라이언트
-│   ├── api.ts             # 메인 API 클라이언트
+│   ├── api.ts             # 메인 API 클라이언트 (laborRulesApi 포함)
 │   ├── storesApi.ts       # Store API
 │   ├── schedulingApi.ts   # 스케줄링 API
 │   ├── requestsApi.ts     # 변경 요청 API
 │   ├── documentsApi.ts    # 문서 API
 │   ├── notificationsApi.ts # 알림 API
-│   ├── reportsApi.ts      # 리포트 API
+│   ├── reportsApi.ts      # 리포트 API (formatMinutes 함수 개선)
 │   ├── timeEntriesApi.ts  # 시간 기록 API
 │   ├── totpApi.ts         # TOTP API
 │   ├── settingsApi.ts     # 설정 API
