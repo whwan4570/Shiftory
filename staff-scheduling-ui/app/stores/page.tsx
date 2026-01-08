@@ -309,8 +309,8 @@ export default function StoresPage() {
                         />
                       </TabsContent>
                       <TabsContent value="rules">
-                        {selectedStoreId && userRole ? (
-                          <LaborRulesConfig storeId={selectedStoreId} userRole={userRole} />
+                        {selectedStoreId && selectedStore?.myRole ? (
+                          <LaborRulesConfig storeId={selectedStoreId} userRole={selectedStore.myRole} />
                         ) : (
                           <div className="rounded-lg border border-dashed p-12 text-center">
                             <p className="text-sm text-muted-foreground">Select a store to configure labor rules.</p>
@@ -318,8 +318,8 @@ export default function StoresPage() {
                         )}
                       </TabsContent>
                       <TabsContent value="integrations">
-                        {selectedStoreId && userRole ? (
-                          <IntegrationsConfig storeId={selectedStoreId} userRole={userRole} />
+                        {selectedStoreId && selectedStore?.myRole ? (
+                          <IntegrationsConfig storeId={selectedStoreId} userRole={selectedStore.myRole} />
                         ) : (
                           <div className="rounded-lg border border-dashed p-12 text-center">
                             <p className="text-sm text-muted-foreground">Select a store to view integrations.</p>
