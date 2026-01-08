@@ -373,3 +373,60 @@ export const membershipsApi = {
   },
 }
 
+
+/**
+ * Labor Rules API
+ */
+export interface LaborRules {
+  overtimeDailyEnabled: boolean
+  overtimeDailyMinutes: number
+  overtimeWeeklyEnabled: boolean
+  overtimeWeeklyMinutes: number
+  breakPaid: boolean
+  weekStartsOn: number
+  availabilityDeadlineDays?: number | null
+  checkinPrimaryMethod: string
+  checkinAllowFallback: boolean
+  checkinGpsRadius: number
+  checkinRequireBoth: boolean
+  checkinWindowStartMins: number
+  checkinWindowEndMins: number
+  checkoutWindowStartMins: number
+  checkoutWindowEndMins: number
+  checkinNoShiftBehavior: string
+  checkinOfflineBehavior: string
+}
+
+export interface UpdateLaborRulesDto {
+  overtimeDailyEnabled?: boolean
+  overtimeDailyMinutes?: number
+  overtimeWeeklyEnabled?: boolean
+  overtimeWeeklyMinutes?: number
+  breakPaid?: boolean
+  weekStartsOn?: number
+  availabilityDeadlineDays?: number
+  checkinPrimaryMethod?: string
+  checkinAllowFallback?: boolean
+  checkinGpsRadius?: number
+  checkinRequireBoth?: boolean
+  checkinWindowStartMins?: number
+  checkinWindowEndMins?: number
+  checkoutWindowStartMins?: number
+  checkoutWindowEndMins?: number
+  checkinNoShiftBehavior?: string
+  checkinOfflineBehavior?: string
+}
+
+export const laborRulesApi = {
+  async getLaborRules(storeId: string): Promise<LaborRules> {
+    return apiRequest<LaborRules>(/stores//labor-rules)
+  },
+
+  async updateLaborRules(storeId: string, data: UpdateLaborRulesDto): Promise<LaborRules> {
+    return apiRequest<LaborRules>(/stores//labor-rules, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  },
+}
+

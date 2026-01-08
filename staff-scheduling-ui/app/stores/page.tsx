@@ -12,6 +12,8 @@ import { CreateStoreModal } from "@/components/modals/create-store-modal"
 import { EditStoreModal } from "@/components/modals/edit-store-modal"
 import { InviteMemberModal } from "@/components/modals/invite-member-modal"
 import { EditMemberModal } from "@/components/modals/edit-member-modal"
+import { LaborRulesConfig } from "@/components/labor-rules-config"
+import { IntegrationsConfig } from "@/components/integrations-config"
 import { Sidebar } from "@/components/sidebar"
 import { Topbar } from "@/components/topbar"
 import { Plus, Pencil, Trash2 } from "lucide-react"
@@ -307,14 +309,22 @@ export default function StoresPage() {
                         />
                       </TabsContent>
                       <TabsContent value="rules">
-                        <div className="rounded-lg border border-dashed p-12 text-center">
-                          <p className="text-sm text-muted-foreground">Labor rules configuration coming soon.</p>
-                        </div>
+                        {selectedStoreId && userRole ? (
+                          <LaborRulesConfig storeId={selectedStoreId} userRole={userRole} />
+                        ) : (
+                          <div className="rounded-lg border border-dashed p-12 text-center">
+                            <p className="text-sm text-muted-foreground">Select a store to configure labor rules.</p>
+                          </div>
+                        )}
                       </TabsContent>
                       <TabsContent value="integrations">
-                        <div className="rounded-lg border border-dashed p-12 text-center">
-                          <p className="text-sm text-muted-foreground">Integrations configuration coming soon.</p>
-                        </div>
+                        {selectedStoreId && userRole ? (
+                          <IntegrationsConfig storeId={selectedStoreId} userRole={userRole} />
+                        ) : (
+                          <div className="rounded-lg border border-dashed p-12 text-center">
+                            <p className="text-sm text-muted-foreground">Select a store to view integrations.</p>
+                          </div>
+                        )}
                       </TabsContent>
                     </Tabs>
                   </CardContent>

@@ -92,8 +92,16 @@ export async function getStaffMonthlySummary(
  * @returns Formatted string (e.g., "8h 30m")
  */
 export function formatMinutes(mins: number): string {
-  const hours = Math.floor(mins / 60)
-  const minutes = mins % 60
+  // Handle NaN, null, undefined, or invalid numbers
+  if (typeof mins !== 'number' || isNaN(mins) || mins === null || mins === undefined) {
+    return '0m'
+  }
+  
+  // Ensure non-negative
+  const validMins = Math.max(0, Math.floor(mins))
+  const hours = Math.floor(validMins / 60)
+  const minutes = validMins % 60
+  
   if (hours === 0) {
     return `${minutes}m`
   }
